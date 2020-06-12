@@ -212,7 +212,7 @@ export const evalShape = (
   // Make sure all props are evaluated to values instead of shapes
   const props = mapValues(propExprs, (prop: TagExpr<number>) =>
     prop.tag === "OptEval"
-      ? (evalExpr(prop.contents, trans, varyingVars) as IVal<number>).contents
+      ? (evalExpr(prop.contents, trans, varyingVars, false) as IVal<number>).contents
       : prop.contents
   );
 
@@ -255,6 +255,10 @@ export const evalExpr = (
   autodiff = false
 ): ArgVal<number | Tensor> => {
 
+  console.log("evalExpr", e, e.contents, "autodiff", autodiff);
+
+  if (typeof e.contents === "number") { if (isNaN(e.contents)) { throw Error("NaN in expr"); } }
+
   switch (e.tag) {
     case "IntLit": {
       return { tag: "Val", contents: { tag: "IntV", contents: e.contents } }
@@ -273,6 +277,9 @@ export const evalExpr = (
         throw new Error("encountered an unsubstituted varying value");
       } else {
         const val = e.contents.contents;
+
+        console.log("AFloat val", val, autodiff, autodiff ? differentiable(val) : val);
+
         return {
           tag: "Val",
           contents: {
@@ -349,7 +356,20 @@ export const evalExpr = (
 
     case "BinOp": {
       const [binOp, e1, e2] = e.contents;
+
+      console.log("evalBinOp in evalExpr", binOp, e1, e2);
+
       const [val1, val2] = evalExprs([e1, e2], trans, varyingVars, autodiff);
+
+      if (val1.tag === "Val") { if (String(val1.contents.contents) === "NaN") { throw Error("NaN"); } }
+      if (val2.tag === "Val") { if (String(val2.contents.contents) === "NaN") { throw Error("NaN"); } }
+
+
+      // if (val1.tag === "Val") { if (val1.contents.tag === "FloatV") { if (isNaN(val1.contents.contents)) { throw Error("NaN in v1"); } } }
+      // if (val2.contents.tag === "FloatV") { if (isNaN(val2.contents.contents)) { throw Error("NaN in v2"); } }
+
+      console.log("after v1, v2", val1, val2);
+
       return {
         tag: "Val",
         // HACK: coerce the type for now to let the compiler finish
@@ -369,7 +389,7 @@ export const evalExpr = (
       const [fnName, argExprs] = e.contents;
       // eval all args
       // TODO: how should computations be written? TF numbers?
-      const args = evalExprs(argExprs, trans, varyingVars) as ArgVal<number>[];
+      const args = evalExprs(argExprs, trans, varyingVars, autodiff) as ArgVal<number>[];
       const argValues = args.map((a) => argValue(a));
       checkComp(fnName, args);
       // retrieve comp function from a global dict and call the function
@@ -413,6 +433,7 @@ export const resolvePath = (
     },
   });
   // HACK: this is a temporary way to consistently compare paths. We will need to make varymap much more efficient
+
   let varyingVal = varyingMap?.get(JSON.stringify(path));
   if (varyingVal) {
     return floatVal(varyingVal);
@@ -481,6 +502,8 @@ export const evalBinOp = (
   v2: Value<number | Tensor>
 ): Value<number | Tensor> => {
 
+  console.log("evalBinOp", op, v1, v2);
+
   let returnType: "FloatV" | "IntV";
   // TODO: deal with Int ops/conversion for binops
   // res = returnType === "IntV" ? Math.floor(res) : res;
@@ -522,12 +545,16 @@ export const evalBinOp = (
 
       case "Divide":
         if (typeof v1.contents === "number" && typeof v2.contents === "number") {
+
+          if (isNaN(v1.contents) || isNaN(v2.contents)) { throw Error("NaN"); }
           if (v2.contents === 0) throw new Error("divided by zero");
+
           res = v1.contents / v2.contents;
         } else if (!(typeof v1.contents === "number") && !(typeof v2.contents === "number")) {
           // two tensors
           res = v1.contents.divStrict(v2.contents);
         } else {
+          console.log("div", v1, v2, typeof v1.contents, typeof v2.contents);
           throw Error("Types don't match for v1, v2");
         }
         break;
@@ -546,6 +573,13 @@ export const evalBinOp = (
     }
 
     returnType = "FloatV";
+
+    console.log("binop result", { tag: returnType, contents: res });
+
+    // if (isNaN(res)) {
+    //   throw Error("NaN in binop");
+    // }
+
     return { tag: returnType, contents: res };
   }
 
