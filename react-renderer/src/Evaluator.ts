@@ -10,10 +10,11 @@ import {
   zip,
 } from "lodash";
 import { mapValues } from "lodash";
-import { dist, randFloat } from "./Util";
+import { randFloat } from "./Util";
 import seedrandom from "seedrandom";
 import { Tensor, Variable, scalar, pad2d, stack } from "@tensorflow/tfjs";
 import { scalarValue, differentiable, evalEnergyOn } from "./Optimizer";
+import { dist } from "./Constraints";
 
 ////////////////////////////////////////////////////////////////////////////////
 // Evaluator
@@ -185,7 +186,7 @@ const arrowPts = ({ startX, startY, endX, endY }: Properties) =>
   [
     [startX.contents, startY.contents],
     [endX.contents, endY.contents],
-  ] as [[number, number], [number, number]];
+  ] as [[number | Tensor, number | Tensor], [number | Tensor, number | Tensor]];
 
 const checkComp = (fn: string, args: ArgVal<number>[]) => {
   if (fn === "orientedSquare") console.log(args);
@@ -361,9 +362,29 @@ export const evalExpr = (
 
       const [val1, val2] = evalExprs([e1, e2], trans, varyingVars, autodiff);
 
-      if (val1.tag === "Val") { if (String(val1.contents.contents) === "NaN") { throw Error("NaN"); } }
-      if (val2.tag === "Val") { if (String(val2.contents.contents) === "NaN") { throw Error("NaN"); } }
+      if (val1.tag === "Val") {
+        if (String(val1.contents.contents) === "NaN") {
+          console.log("evalBinOp in evalExpr");
+          console.log("binOp", binOp);
+          console.log("e1", e1);
+          console.log("e2", e2);
+          console.log("val1", val1);
+          console.log("val2", val2);
+          throw Error("NaN");
+        }
+      }
 
+      if (val2.tag === "Val") {
+        if (String(val2.contents.contents) === "NaN") {
+          console.log("evalBinOp in evalExpr");
+          console.log("binOp", binOp);
+          console.log("e1", e1);
+          console.log("e2", e2);
+          console.log("val1", val1);
+          console.log("val2", val2);
+          throw Error("NaN");
+        }
+      }
 
       // if (val1.tag === "Val") { if (val1.contents.tag === "FloatV") { if (isNaN(val1.contents.contents)) { throw Error("NaN in v1"); } } }
       // if (val2.contents.tag === "FloatV") { if (isNaN(val2.contents.contents)) { throw Error("NaN in v2"); } }
@@ -392,6 +413,10 @@ export const evalExpr = (
       const args = evalExprs(argExprs, trans, varyingVars, autodiff) as ArgVal<number>[];
       const argValues = args.map((a) => argValue(a));
       checkComp(fnName, args);
+
+      console.log("comp input", fnName, argExprs, compDict[fnName]);
+      console.log("comp result", compDict[fnName](...argValues));
+
       // retrieve comp function from a global dict and call the function
       return { tag: "Val", contents: compDict[fnName](...argValues) };
     } break;
