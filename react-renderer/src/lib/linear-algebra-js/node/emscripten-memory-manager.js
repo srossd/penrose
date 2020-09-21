@@ -1,5 +1,3 @@
-"use strict";
-
 class EmscriptenMemoryManager {
 	/**
 	 * This class serves as a semi automatic memory manager/garbage collector
@@ -24,9 +22,9 @@ class EmscriptenMemoryManager {
 	 * // delete all objects created in the previous three calls except B
 	 * memoryManager.deleteExcept([B]);
 	 */
-	constructor() {
-		this.objectList = [];
-	}
+  constructor() {
+    this.objectList = [];
+  }
 
 	/**
 	 * Deletes all objects in this memory manager's list of emscripten heap allocated
@@ -35,21 +33,24 @@ class EmscriptenMemoryManager {
 	 * @param {Object[]} exceptList Array of objects allocated on the emscripten heap
 	 * that should not to be deleted.
 	 */
-	deleteExcept(exceptList) {
-		for (let object of this.objectList) {
-			let deleteObject = true;
+  deleteExcept(exceptList) {
+    for (let object of this.objectList) {
+      let deleteObject = true;
 
-			for (let except of exceptList) {
-				if (object === except) {
-					deleteObject = false;
-				}
-			}
+      for (let except of exceptList) {
+        if (object === except) {
+          deleteObject = false;
+        }
+      }
 
-			if (deleteObject) {
-				object.delete();
-			}
-		}
+      if (deleteObject) {
+        object.delete();
+      }
+    }
 
-		this.objectList = exceptList;
-	}
+    this.objectList = exceptList;
+  }
 }
+
+// module.exports = new EmscriptenMemoryManager()
+export default new EmscriptenMemoryManager()

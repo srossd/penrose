@@ -1,4 +1,17 @@
-import { LinearAlgebra, DenseMatrix as la, Vector as vec, memoryManager } from "linear-algebra-js";
+// import DenseMatrix as la from "./lib/linear-algebra-js/node/linear-algebra.js";
+// import DenseMatrix from "./lib/linear-algebra-js/node/linear-algebra.js";
+// import * as linalg from "./lib/linear-algebra-js/node/linear-algebra.js";
+// import { DenseMatrix } from "./lib/linear-algebra-js/web/dense-matrix.js";
+
+// TODO: Most working?
+// CommonJS?
+// import { DenseMatrix as la, memoryManager } from "./lib/linear-algebra-js/node/linear-algebra.js";
+
+// ES modules?
+import DenseMatrix from "./lib/linear-algebra-js/web/dense-matrix.js";
+import EmscriptenMemoryManager from "./lib/linear-algebra-js/web/emscripten-memory-manager.js";
+
+
 import {
   makeADInputVars,
   energyAndGradCompiled,
@@ -160,7 +173,7 @@ export const stepBasic = (state: State, steps: number, evaluate = true) => {
 
         const { graphs, f, gradf } = energyAndGradCompiled(xs, xsVars, res.energyGraph, weightInfo);
 
-        memoryManager.deleteExcept([]); // Clear allocated matrix, vector objects in L-BFGS params
+        EmscriptenMemoryManager.deleteExcept([]); // Clear allocated matrix, vector objects in L-BFGS params
 
         const newParams: Params = {
           ...state.params,
