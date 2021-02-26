@@ -122,108 +122,108 @@ describe("Compiler", () => {
 
   // Compiler finds the right substitutions for LA Style program
   // Note that this doesn't test subtypes
-  // test("finds the right substitutions for LA Style program", () => {
-  //   // This code is cleaned up from `S.compileStyle`; runs the beginning of compiler checking from scratch
-  //   const triple: [string, string, string] = [
-  //     "linear-algebra-domain/linear-algebra.dsl",
-  //     "linear-algebra-domain/twoVectorsPerp-unsugared.sub",
-  //     "linear-algebra-domain/linear-algebra-paper-simple.sty",
-  //   ];
+  test("finds the right substitutions for LA Style program", () => {
+    // This code is cleaned up from `S.compileStyle`; runs the beginning of compiler checking from scratch
+    const triple: [string, string, string] = [
+      "linear-algebra-domain/linear-algebra.dsl",
+      "linear-algebra-domain/twoVectorsPerp-unsugared.sub",
+      "linear-algebra-domain/linear-algebra-paper-simple.sty",
+    ];
 
-  //   const [varEnv, subEnv, subProg, styProgInit]: [
-  //     Env,
-  //     SubstanceEnv,
-  //     SubProg,
-  //     StyProg
-  //   ] = loadProgs(loadFiles(triple) as [string, string, string]);
+    const [varEnv, subEnv, subProg, styProgInit]: [
+      Env,
+      SubstanceEnv,
+      SubProg,
+      StyProg
+    ] = loadProgs(loadFiles(triple) as [string, string, string]);
 
-  //   const selEnvs = S.checkSelsAndMakeEnv(varEnv, styProgInit.blocks);
+    const selEnvs = S.checkSelsAndMakeEnv(varEnv, styProgInit.blocks);
 
-  //   const selErrs: StyleErrors = _.flatMap(selEnvs, (e) =>
-  //     e.warnings.concat(e.errors)
-  //   );
+    const selErrs: StyleErrors = _.flatMap(selEnvs, (e) =>
+      e.warnings.concat(e.errors)
+    );
 
-  //   if (selErrs.length > 0) {
-  //     const err = `Could not compile. Error(s) in Style while checking selectors`;
-  //     console.log([err].concat(selErrs.map((e) => showError(e))));
-  //     fail();
-  //   }
+    if (selErrs.length > 0) {
+      const err = `Could not compile. Error(s) in Style while checking selectors`;
+      console.log([err].concat(selErrs.map((e) => showError(e))));
+      fail();
+    }
 
-  //   const subss = S.findSubstsProg(
-  //     varEnv,
-  //     subEnv,
-  //     subProg,
-  //     styProgInit.blocks,
-  //     selEnvs
-  //   ); // TODO: Use `eqEnv`
+    const subss = S.findSubstsProg(
+      varEnv,
+      subEnv,
+      subProg,
+      styProgInit.blocks,
+      selEnvs
+    ); // TODO: Use `eqEnv`
 
-  //   if (subss.length !== correctSubsts.length) {
-  //     fail();
-  //   }
+    if (subss.length !== correctSubsts.length) {
+      fail();
+    }
 
-  //   for (const [res, expected] of _.zip(subss, correctSubsts)) {
-  //     expect(res).toEqual(expected);
-  //   }
-  // });
+    for (const [res, expected] of _.zip(subss, correctSubsts)) {
+      expect(res).toEqual(expected);
+    }
+  });
 
   // There are no AnonAssign statements, i.e. they have all been substituted out (proxy test for `S.nameAnonStatements` working)
-  // test("There are no anonymous statements", () => {
-  //   const triple: [string, string, string] = [
-  //     "linear-algebra-domain/linear-algebra.dsl",
-  //     "linear-algebra-domain/twoVectorsPerp-unsugared.sub",
-  //     "linear-algebra-domain/linear-algebra-paper-simple.sty",
-  //   ];
+  test("There are no anonymous statements", () => {
+    const triple: [string, string, string] = [
+      "linear-algebra-domain/linear-algebra.dsl",
+      "linear-algebra-domain/twoVectorsPerp-unsugared.sub",
+      "linear-algebra-domain/linear-algebra-paper-simple.sty",
+    ];
 
-  //   const [varEnv, subEnv, subProg, styProgInit]: [
-  //     Env,
-  //     SubstanceEnv,
-  //     SubProg,
-  //     StyProg
-  //   ] = loadProgs(loadFiles(triple) as [string, string, string]);
+    const [varEnv, subEnv, subProg, styProgInit]: [
+      Env,
+      SubstanceEnv,
+      SubProg,
+      StyProg
+    ] = loadProgs(loadFiles(triple) as [string, string, string]);
 
-  //   const selEnvs = S.checkSelsAndMakeEnv(varEnv, styProgInit.blocks);
-  //   const selErrs: StyleErrors = _.flatMap(selEnvs, (e) =>
-  //     e.warnings.concat(e.errors)
-  //   );
+    const selEnvs = S.checkSelsAndMakeEnv(varEnv, styProgInit.blocks);
+    const selErrs: StyleErrors = _.flatMap(selEnvs, (e) =>
+      e.warnings.concat(e.errors)
+    );
 
-  //   if (selErrs.length > 0) {
-  //     const err = `Could not compile. Error(s) in Style while checking selectors`;
-  //     console.log([err].concat(selErrs.map((e) => showError(e))));
-  //     expect(false).toEqual(true);
-  //   }
+    if (selErrs.length > 0) {
+      const err = `Could not compile. Error(s) in Style while checking selectors`;
+      console.log([err].concat(selErrs.map((e) => showError(e))));
+      expect(false).toEqual(true);
+    }
 
-  //   const styProg: StyProg = S.nameAnonStatements(styProgInit);
+    const styProg: StyProg = S.nameAnonStatements(styProgInit);
 
-  //   for (const hb of styProg.blocks) {
-  //     for (const stmt of hb.block.statements) {
-  //       expect(stmt.tag).not.toEqual("AnonAssign");
-  //     }
-  //   }
-  // });
+    for (const hb of styProg.blocks) {
+      for (const stmt of hb.block.statements) {
+        expect(stmt.tag).not.toEqual("AnonAssign");
+      }
+    }
+  });
 
   const sum = (acc: number, n: number, i: number): Either<string, number> =>
     i > 2 ? S.Left("error") : S.Right(acc + n);
 
-  // test("S.foldM none", () => {
-  //   expect(S.foldM([], sum, -1)).toEqual(S.Right(-1));
-  // });
+  test("S.foldM none", () => {
+    expect(S.foldM([], sum, -1)).toEqual(S.Right(-1));
+  });
 
-  // test("S.foldM right", () => {
-  //   expect(S.foldM([1, 2, 3], sum, -1)).toEqual(S.Right(5));
-  // });
+  test("S.foldM right", () => {
+    expect(S.foldM([1, 2, 3], sum, -1)).toEqual(S.Right(5));
+  });
 
-  // test("S.foldM left", () => {
-  //   expect(S.foldM([1, 2, 3, 4], sum, -1)).toEqual(S.Left("error"));
-  // });
+  test("S.foldM left", () => {
+    expect(S.foldM([1, 2, 3, 4], sum, -1)).toEqual(S.Left("error"));
+  });
 
-  // const xs = ["a", "b", "c"];
-  // test("numbered", () => {
-  //   expect(S.numbered(xs)).toEqual([
-  //     ["a", 0],
-  //     ["b", 1],
-  //     ["c", 2],
-  //   ]);
-  // });
+  const xs = ["a", "b", "c"];
+  test("numbered", () => {
+    expect(S.numbered(xs)).toEqual([
+      ["a", 0],
+      ["b", 1],
+      ["c", 2],
+    ]);
+  });
 
   // TODO: There are no tests directly for the substitution application part of the compiler, though I guess you could walk the AST (making the substitution-application code more generic to do so) and check that there are no Style variables anywhere? Except for, I guess, namespace names?
 
@@ -258,202 +258,203 @@ describe("Compiler", () => {
     }
   };
 
-  //   describe("Errors", () => {
-  //     const subProg = loadFile("set-theory-domain/twosets-simple.sub");
-  //     const domainProg = loadFile("set-theory-domain/setTheory.dsl");
-  //     // We test variations on this Style program
-  //     // const styPath = "set-theory-domain/venn.sty";
+  describe("Errors", () => {
+    const subProg = loadFile("set-theory-domain/twosets-simple.sub");
+    const domainProg = loadFile("set-theory-domain/setTheory.dsl");
+    // We test variations on this Style program
+    // const styPath = "set-theory-domain/venn.sty";
 
-  //     const domainRes: Result<Env, PenroseError> = compileDomain(domainProg);
+    const domainRes: Result<Env, PenroseError> = compileDomain(domainProg);
 
-  //     const subRes: Result<[SubstanceEnv, Env], PenroseError> = andThen(
-  //       (env) => compileSubstance(subProg, env),
-  //       domainRes
-  //     );
+    const subRes: Result<[SubstanceEnv, Env], PenroseError> = andThen(
+      (env) => compileSubstance(subProg, env),
+      domainRes
+    );
 
-  //     const testStyProgForError = (styProg: string, errorType: string) => {
-  //       const styRes: Result<State, PenroseError> = andThen(
-  //         (res) => S.compileStyle(styProg, ...res),
-  //         subRes
-  //       );
-  //       describe(errorType, () => {
-  //         expectErrorOf(styRes, errorType);
-  //       });
-  //     };
+    const testStyProgForError = (styProg: string, errorType: string) => {
+      const styRes: Result<State, PenroseError> = andThen(
+        (res) => S.compileStyle(styProg, ...res),
+        subRes
+      );
+      describe(errorType, () => {
+        expectErrorOf(styRes, errorType);
+      });
+    };
 
-  //     const errorStyProgs = {
-  //       // ------ Selector errors (from Substance)
-  //       SelectorDeclTypeError: [`forall Setfhjh x { }`],
-  //       SelectorVarMultipleDecl: [`forall Set x; Set x { }`],
+    const errorStyProgs = {
+      // ------ Selector errors (from Substance)
+      SelectorDeclTypeError: [`forall Setfhjh x { }`],
+      SelectorVarMultipleDecl: [`forall Set x; Set x { }`],
 
-  //       // COMBAK: Style doesn't throw parse error if the program is just "forall Point `A`"... instead it fails inside compileStyle with an undefined selector environment
-  //       SelectorDeclTypeMismatch: [`forall Point \`A\` { }`],
+      // COMBAK: Style doesn't throw parse error if the program is just "forall Point `A`"... instead it fails inside compileStyle with an undefined selector environment
+      SelectorDeclTypeMismatch: [`forall Point \`A\` { }`],
 
-  //       SelectorRelTypeMismatch: [
-  //         `forall Point x; Set y; Set z
-  //       where x := Union(y, z) { } `,
-  //       ],
+      SelectorRelTypeMismatch: [
+        `forall Point x; Set y; Set z
+      where x := Union(y, z) { } `,
+      ],
 
-  //       TaggedSubstanceError: [
-  //         `forall Set x; Point y
-  // where IsSubset(y, x) { }`,
-  //       ],
+      TaggedSubstanceError: [
+        `forall Set x; Point y
+where IsSubset(y, x) { }`,
+      ],
 
-  //       // ---------- Block static errors
+      // ---------- Block static errors
 
-  //       InvalidGPITypeError: [`forall Set x { x.icon = Circl { } }`],
+      InvalidGPITypeError: [`forall Set x { x.icon = Circl { } }`],
 
-  //       // COMBAK: Check that multiple wrong properties are checked -- i.e. this dict ontology has to be extended so that one program can have multiple errors
-  //       InvalidGPIPropertyError: [
-  //         `forall Set x {
-  //           x.icon = Circle {
-  //            centre: (0.0, 0.0)
-  //            r: 9.
-  //            diameter: 100.
-  //          }
-  //        }`,
-  //       ],
+      // COMBAK: Check that multiple wrong properties are checked -- i.e. this dict ontology has to be extended so that one program can have multiple errors
+      InvalidGPIPropertyError: [
+        `forall Set x {  
+          x.icon = Circle { 
+           centre: (0.0, 0.0) 
+           r: 9.
+           diameter: 100.
+         } 
+       }`,
+      ],
 
-  //       // Have to do a nested search in expressions for this
-  //       InvalidFunctionNameError: [
-  //         `forall Set x { x.icon = Circle { r: ksajfksdafksfh(0.0, "hi") } }`,
-  //         `forall Set x { x.icon = Circle { r: get(0.0, sjkfhsdk("hi")) } }`,
-  //         `forall Set x { x.icon = Circle { r: wjhkej(0.0, sjkfhsdk("hi")) } }`,
-  //       ],
+      // Have to do a nested search in expressions for this
+      InvalidFunctionNameError: [
+        `forall Set x { x.icon = Circle { r: ksajfksdafksfh(0.0, "hi") } }`,
+        `forall Set x { x.icon = Circle { r: get(0.0, sjkfhsdk("hi")) } }`,
+        `forall Set x { x.icon = Circle { r: wjhkej(0.0, sjkfhsdk("hi")) } }`,
+      ],
 
-  //       InvalidObjectiveNameError: [`forall Set x { encourage sjdhfksha(0.0) }`],
+      InvalidObjectiveNameError: [`forall Set x { encourage sjdhfksha(0.0) }`],
 
-  //       InvalidConstraintNameError: [`forall Set x { ensure jahfkjdhf(0.0) }`],
+      InvalidConstraintNameError: [`forall Set x { ensure jahfkjdhf(0.0) }`],
 
-  //       // ------- Translation errors (deletion)
-  //       DeletedPropWithNoSubObjError: [`forall Set x { delete y.z.p }`],
-  //       DeletedPropWithNoFieldError: [
-  //         `forall Set x { x.icon = Circle { }
-  // delete x.z.p }`,
-  //       ],
+      // ------- Translation errors (deletion)
+      DeletedPropWithNoSubObjError: [`forall Set x { delete y.z.p }`],
+      DeletedPropWithNoFieldError: [
+        `forall Set x { x.icon = Circle { }
+delete x.z.p }`,
+      ],
 
-  //       DeletedPropWithNoGPIError: [
-  //         `forall Set x { x.z = 0.0
-  // delete x.z.p }`,
-  //       ],
+      DeletedPropWithNoGPIError: [
+        `forall Set x { x.z = 0.0
+delete x.z.p }`,
+      ],
 
-  //       // COMBAK: This doesn't catch the error
-  //       // COMBAK: Style appears to throw parse error if line ends with a trailing space
-  //       // COMBAK: Why is this a parse error??
-  //       // COMBAK: Test the instance in `insertExpr` as well as in `compileStyle`
-  //       //       CircularPathAlias: [`forall Set x { x.icon = Circle { }
-  //       // x.icon.center = x.icon.center }`],
+      // COMBAK: This doesn't catch the error
+      // COMBAK: Style appears to throw parse error if line ends with a trailing space
+      // COMBAK: Why is this a parse error??
+      // COMBAK: Test the instance in `insertExpr` as well as in `compileStyle`
+      //       CircularPathAlias: [`forall Set x { x.icon = Circle { }
+      // x.icon.center = x.icon.center }`],
 
-  //       DeletedNonexistentFieldError: [`forall Set x { delete x.z }`],
-  //       DeletedVectorElemError: [
-  //         `forall Set x {
-  //          x.icon = Circle {
-  //            center: (0.0, 0.0)
-  //          }
-  //          delete x.icon[0] }`,
-  //       ],
+      DeletedNonexistentFieldError: [`forall Set x { delete x.z }`],
+      DeletedVectorElemError: [
+        `forall Set x {  
+         x.icon = Circle { 
+           center: (0.0, 0.0) 
+         }
+         delete x.icon[0] }`,
+      ],
 
-  //       // ---------- Translation errors (insertion)
+      // ---------- Translation errors (insertion)
 
-  //       InsertedPathWithoutOverrideError: [
-  //         `forall Set x {
-  //            x.z = 1.0
-  //            x.z = 2.0
-  // }`,
-  //         `forall Set x {
-  //          x.icon = Circle {
-  //            center: (0.0, 0.0)
-  //          }
-  //            x.icon.center = 2.0
-  // }`,
-  //       ],
+      InsertedPathWithoutOverrideError: [
+        `forall Set x { 
+           x.z = 1.0 
+           x.z = 2.0
+}`,
+        `forall Set x { 
+         x.icon = Circle { 
+           center: (0.0, 0.0) 
+         }
+           x.icon.center = 2.0
+}`,
+      ],
 
-  //       InsertedPropWithNoFieldError: [
-  //         `forall Set x {
-  //     x.icon.r = 0.0
-  // }`,
-  //       ],
+      InsertedPropWithNoFieldError: [
+        `forall Set x {
+    x.icon.r = 0.0
+}`,
+      ],
 
-  //       InsertedPropWithNoGPIError: [
-  //         `forall Set x {
-  //     x.icon = "hello"
-  //     x.icon.r = 0.0
-  // }`,
-  //       ],
+      InsertedPropWithNoGPIError: [
+        `forall Set x {
+    x.icon = "hello"
+    x.icon.r = 0.0
+}`,
+      ],
 
-  //       // ----------- Translation validation errors
-  //       // TODO(errors): check multiple errors
+      // ----------- Translation validation errors
+      // TODO(errors): check multiple errors
 
-  //       // TODO(errors): This throws too early, gives InsertedPathWithoutOverrideError -- correctly throws error but may be misleading
+      // TODO(errors): This throws too early, gives InsertedPathWithoutOverrideError -- correctly throws error but may be misleading
 
-  //       // NonexistentNameError:
-  //       //   [`forall Set x { A.z = 0. }`],
+      // NonexistentNameError:
+      //   [`forall Set x { A.z = 0. }`],
 
-  //       NonexistentFieldError: [`forall Set x { x.icon = Circle { r: x.r } }`],
-  //       NonexistentGPIError: [
-  //         `forall Set x {
-  //          x.z = x.c.p
-  //        }`,
-  //       ],
-  //       NonexistentPropertyError: [
-  //         `forall Set x {
-  //           x.icon = Circle {
-  //            r: 9.
-  //            center: (x.icon.z, 0.0)
-  //          }
-  //        }`,
-  //       ],
-  //       ExpectedGPIGotFieldError: [
-  //         `forall Set x {
-  //            x.z = 1.0
-  //            x.y = x.z.p
-  // }`,
-  //       ],
-  //       InvalidAccessPathError: [
-  //         `forall Set x {
-  //            x.z = 1.0
-  //            x.y = x.z[0]
-  // }`,
-  //       ],
+      NonexistentFieldError: [`forall Set x { x.icon = Circle { r: x.r } }`],
+      NonexistentGPIError: [
+        `forall Set x {  
+         x.z = x.c.p
+       }`,
+      ],
+      NonexistentPropertyError: [
+        `forall Set x {  
+          x.icon = Circle { 
+           r: 9.
+           center: (x.icon.z, 0.0)
+         } 
+       }`,
+      ],
+      ExpectedGPIGotFieldError: [
+        `forall Set x { 
+           x.z = 1.0 
+           x.y = x.z.p
+}`,
+      ],
+      // TODO: this test should _not_ fail, but it's failing because we are skipping `OptEval` checks for access paths
+      //       InvalidAccessPathError: [
+      //         `forall Set x {
+      //            x.z = 1.0
+      //            x.y = x.z[0]
+      // }`,
+      //       ],
 
-  //       // ---------- Runtime errors (insertExpr)
+      // ---------- Runtime errors (insertExpr)
 
-  //       // COMBAK / TODO(errors): Test this more thoroughly
-  //       // COMBAK / NOTE: runtime errors aren't caught if an expr isn't evaluated, since we don't have statics. Test these separately.
+      // COMBAK / TODO(errors): Test this more thoroughly
+      // COMBAK / NOTE: runtime errors aren't caught if an expr isn't evaluated, since we don't have statics. Test these separately.
 
-  //       //       RuntimeValueTypeError: [
-  //       //         `forall Set x {
-  //       //          x.icon = Circle {
-  //       //            center: (0.0, 0.0)
-  //       //          }
-  //       //            x.icon.center[0] = "hello"
-  //       //            x.icon.center[1] = x.icon.center[0]
-  //       // }`]
-  //     };
+      //       RuntimeValueTypeError: [
+      //         `forall Set x {
+      //          x.icon = Circle {
+      //            center: (0.0, 0.0)
+      //          }
+      //            x.icon.center[0] = "hello"
+      //            x.icon.center[1] = x.icon.center[0]
+      // }`]
+    };
 
-  //     // ---------- Errors that should maybe be modeled + tested
+    // ---------- Errors that should maybe be modeled + tested
 
-  //     // COMBAK: Should this have a warning/error? Currently doesn't
-  //     // `forall Set x { x.icon = Circle { }; delete x.icon.z }
+    // COMBAK: Should this have a warning/error? Currently doesn't
+    // `forall Set x { x.icon = Circle { }; delete x.icon.z }
 
-  //     // COMBAK: These both cause a weird crash that's not caught
-  //     // override x.icon = x.icon
-  //     // ensure contains(x.icon, x.text2)
+    // COMBAK: These both cause a weird crash that's not caught
+    // override x.icon = x.icon
+    // ensure contains(x.icon, x.text2)
 
-  //     // forall Set x { x.icon = Circle { }
-  //     // x.icon2 = x.icon
-  //     // x.icon2.strokeWidth = 5.0
-  //     // -- COMBAK: This line does not appear to have worked
-  //     // delete x.icon2.strokeWidth
-  //     // }
+    // forall Set x { x.icon = Circle { }
+    // x.icon2 = x.icon
+    // x.icon2.strokeWidth = 5.0
+    // -- COMBAK: This line does not appear to have worked
+    // delete x.icon2.strokeWidth
+    // }
 
-  //     // Test that each program yields its error type
-  //     for (const [errorType, styProgs] of Object.entries(errorStyProgs)) {
-  //       for (const styProg of styProgs) {
-  //         // TODO(error): improve this so it becomes individual tests, using the framework
-  //         // console.log("testing", errorType);
-  //         testStyProgForError(styProg, errorType);
-  //       }
-  //     }
-  //   });
+    // Test that each program yields its error type
+    for (const [errorType, styProgs] of Object.entries(errorStyProgs)) {
+      for (const styProg of styProgs) {
+        // TODO(error): improve this so it becomes individual tests, using the framework
+        // console.log("testing", errorType);
+        testStyProgForError(styProg, errorType);
+      }
+    }
+  });
 });

@@ -1,10 +1,22 @@
 Object egg, yolk, white, sugar, crust, lemon, butter, sugar, filling, unbaked, baked, meringue
 
-Morphism separate := join(egg, tensor(yolk, white)) 
-Morphism meringue := join(white * sugar, meringue)
-Morphism filling := join(tensor(tensor(tensor(lemon, butter), sugar), yolk), filling)
-Morphism fill := join(tensor(crust, filling), unbaked)
-Morphism add := join(tensor(unbaked, meringue), unbaked)
+Object yw := tensor(yolk, white)
+
+Object ws := tensor(white, sugar)
+
+Object lb := tensor(lemon, butter)
+Object lbs := tensor(lb, sugar)
+Object lbsy := tensor(lbs, yolk)
+
+Object cf := tensor(crust, filling)
+
+Object um := tensor(unbaked, meringue)
+
+Morphism separate := join(egg, yw) 
+Morphism mmeringue := join(ws, meringue)
+Morphism mfilling := join(lbsy, filling)
+Morphism fill := join(cf, unbaked)
+Morphism add := join(um, unbaked)
 Morphism oven := join(unbaked, baked)
 
  -- [lemon, butter, sugar, yolk] ← list?

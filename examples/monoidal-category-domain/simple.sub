@@ -1,7 +1,12 @@
-Object A, B, C
+Object A, B, C, D
+-- Object E, F
 
 Object ab := tensor(A, B)
-Morphism abc := join(ab, C)
+Object abc := tensor(ab, C)
+Morphism F2 := join(abc, D)
+-- Object de := tensor(D, E)
+-- Morphism G := join(de, F)
 
 AutoLabel All
-Label abc $F^2$
+Label F2 $F^2$
+-- Label G $G$

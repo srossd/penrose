@@ -17,10 +17,31 @@ import {
   squared,
   sub,
   varOf,
+  ifCond,
+  lt,
+  eq,
+  and,
 } from "engine/Autodiff";
 import * as _ from "lodash";
 import { linePts } from "utils/OtherUtils";
 import { canvasSize } from "renderer/ShapeDef";
+
+// Kinds of shapes
+/**
+ * Takes a `shapeType`, returns whether it's rectlike. (excluding squares)
+ */
+export const isRectlike = (shapeType: string): boolean => {
+  return (
+    shapeType == "Rectangle" || shapeType == "Image" || shapeType == "Text"
+  );
+};
+
+/**
+ * Takes a `shapeType`, returns whether it's linelike. (TODO: Account for arrowhead size)
+ */
+export const isLinelike = (shapeType: string): boolean => {
+  return shapeType == "Line" || shapeType == "Arrow";
+};
 
 export const objDict = {
   /**
@@ -58,7 +79,7 @@ export const objDict = {
     let res;
 
     // Repel a line `s1` from another shape `s2` with a center.
-    if (t1 === "Line") {
+    if (isLinelike(t1)) {
       const line = s1;
       const c2 = fns.center(s2);
       const lineSamplePts = sampleSeg(linePts(line));
@@ -85,7 +106,7 @@ export const objDict = {
   ): VarAD => {
     const spacing = varOf(1.1); // arbitrary
 
-    if (typesAre([t1, t2, t3], ["Arrow", "Text", "Text"])) {
+    if (isLinelike(t1) && isRectlike(t2) && isRectlike(t3)) {
       // HACK: Arbitrarily pick the height of the text
       // [spacing * getNum text1 "h", negate $ 2 * spacing * getNum text2 "h"]
       return centerArrow2(arr, fns.center(text1), fns.center(text2), [
@@ -111,17 +132,13 @@ export const objDict = {
       )
     ),
 
-  /**
-   * Try to center a label `s2` with respect to some shape `s1`.
-   */
-  centerLabel: (
+  centerLabelAbove: (
     [t1, s1]: [string, any],
     [t2, s2]: [string, any],
     w: number
   ): VarAD => {
-    if (typesAre([t1, t2], ["Arrow", "Text"])) {
-      const arr = s1;
-      const text1 = s2;
+    if (isLinelike(t1) && isRectlike(t2)) {
+      const [arr, text] = [s1, s2];
       const mx = div(
         add(arr.start.contents[0], arr.end.contents[0]),
         constOf(2.0)
@@ -132,15 +149,39 @@ export const objDict = {
       );
 
       // entire equation is (mx - lx) ^ 2 + (my + 1.1 * text.h - ly) ^ 2 from Functions.hs - split it into two halves below for readability
-      const lh = squared(sub(mx, text1.center.contents[0]));
+      const lh = squared(sub(mx, text.center.contents[0]));
       const rh = squared(
         sub(
-          add(my, mul(text1.h.contents, constOf(1.1))),
-          text1.center.contents[1]
+          add(my, mul(text.h.contents, constOf(1.1))),
+          text.center.contents[1]
         )
       );
       return mul(add(lh, rh), constOfIf(w));
-    } else if (typesAre([t1, t2], ["Rectangle", "Text"])) {
+    } else throw Error("unsupported shapes");
+  },
+
+  /**
+   * Try to center a label `s2` with respect to some shape `s1`.
+   */
+  centerLabel: (
+    [t1, s1]: [string, any],
+    [t2, s2]: [string, any],
+    w: number
+  ): VarAD => {
+    if (isLinelike(t1) && isRectlike(t2)) {
+      // The distance between the midpoint of the arrow and the center of the text should be approx. the label's "radius" plus some padding
+      const [arr, text] = [s1, s2];
+      const midpt = ops.vdiv(
+        ops.vadd(arr.start.contents, arr.end.contents),
+        constOf(2.0)
+      );
+      const padding = constOf(10);
+      // is (x-y)^2 = x^2-2xy+y^2 better? or x^2 - y^2?
+      return add(
+        sub(ops.vdistsq(midpt, text.center.contents), squared(text.w.contents)),
+        squared(padding)
+      );
+    } else if (isRectlike(t1) && isRectlike(t2)) {
       // Try to center label in the rectangle
       // TODO: This should be applied generically on any two GPIs with a center
       return objDict.sameCenter([t1, s1], [t2, s2]);
@@ -161,6 +202,19 @@ export const objDict = {
    */
   nearPt: ([t1, s1]: [string, any], x: any, y: any) => {
     return ops.vdistsq(fns.center(s1), [constOfIf(x), constOfIf(y)]);
+  },
+
+  /**
+   * todo(ross)
+   */
+  lengthNear: ([t1, s1]: [string, any], l: any) => {
+    if (t1 == "Line") {
+      const p = s1.start.contents;
+      const q = s1.end.contents;
+      return squared(sub(ops.vdist(p, q), l));
+    } else {
+      throw Error(`unsupported shape for 'lengthNear': ${t1}`);
+    }
   },
 };
 
@@ -187,7 +241,7 @@ export const constrDict = {
   minSize: ([shapeType, props]: [string, any]) => {
     const limit = 20;
 
-    if (shapeType === "Line" || shapeType === "Arrow") {
+    if (isLinelike(shapeType)) {
       const minLen = 50;
       const vec = ops.vsub(props.end.contents, props.start.contents);
       return sub(constOf(minLen), ops.vnorm(vec));
@@ -219,11 +273,11 @@ export const constrDict = {
         : sub(s1.r.contents, s2.r.contents);
       const res = sub(d, o);
       return res;
-    } else if (t1 === "Circle" && t2 === "Text") {
+    } else if (t1 === "Circle" && isRectlike(t2)) {
       const d = ops.vdist(fns.center(s1), fns.center(s2));
       const textR = max(s2.w.contents, s2.h.contents);
       return add(sub(d, s1.r.contents), textR);
-    } else if (t1 === "Rectangle" && t2 === "Circle") {
+    } else if (isRectlike(t1) && t2 === "Circle") {
       // contains [GPI r@("Rectangle", _), GPI c@("Circle", _), Val (FloatV padding)] =
       // -- HACK: reusing test impl, revert later
       //    let r_l = min (getNum r "w") (getNum r "h") / 2
@@ -240,24 +294,29 @@ export const constrDict = {
       const sq = s1.center.contents;
       const d = ops.vdist(sq, fns.center(s2));
       return sub(d, sub(mul(constOf(0.5), s1.side.contents), s2.r.contents));
-    } else if (t1 === "Rectangle" && t2 === "Text") {
+    } else if (isRectlike(t1) && isRectlike(t2)) {
       // contains [GPI r@("Rectangle", _), GPI l@("Text", _), Val (FloatV padding)] =
       // TODO: implement precisely, max (w, h)? How about diagonal case?
       // dist (getX l, getY l) (getX r, getY r) - getNum r "w" / 2 +
       //   getNum l "w" / 2 + padding
 
+      // TODO: This uses an approximation of each rect:
+      // Containee overapproximation: square of its max (w,h)^2
+      // Container underapproximation: square of its min (w,h)^2
+      // s1 `contains` s2
+      // (Is `max` bad for opt bc discontinuous?)
       const a1 = ops.vdist(fns.center(s1), fns.center(s2));
-      const a2 = div(s1.w.contents, constOf(2.0));
-      const a3 = div(s2.w.contents, constOf(2.0));
+      const a2 = div(min(s1.h.contents, s1.w.contents), constOf(2.0));
+      const a3 = div(max(s2.h.contents, s2.w.contents), constOf(2.0));
       const c = offset ? offset : constOf(0.0);
       return add(add(sub(a1, a2), a3), c);
-    } else if (t1 === "Square" && t2 === "Text") {
+    } else if (t1 === "Square" && isRectlike(t2)) {
       const a1 = ops.vdist(fns.center(s1), fns.center(s2));
       const a2 = div(s1.side.contents, constOf(2.0));
       const a3 = div(s2.w.contents, constOf(2.0)); // TODO: Implement w/ exact text dims
       const c = offset ? offset : constOf(0.0);
       return add(add(sub(a1, a2), a3), c);
-    } else if (t1 === "Square" && t2 === "Arrow") {
+    } else if (t1 === "Square" && isLinelike(t2)) {
       const [[startX, startY], [endX, endY]] = linePts(s2);
       const [x, y] = fns.center(s1);
 
@@ -290,16 +349,54 @@ export const constrDict = {
       const d = ops.vdist(fns.center(s1), fns.center(s2));
       const o = [s1.r.contents, s2.r.contents, varOf(10.0)];
       return sub(addN(o), d);
-    } else if (typesAre([t1, t2], ["Text", "Line"])) {
+    } else if (isRectlike(t1) && isLinelike(t2)) {
       const [text, seg] = [s1, s2];
       const centerT = fns.center(text);
       const endpts = linePts(seg);
       const cp = closestPt_PtSeg(centerT, endpts);
       const lenApprox = div(text.w.contents, constOf(2.0));
       return sub(add(lenApprox, constOfIf(offset)), ops.vdist(centerT, cp));
-    } else throw new Error(`${[t1, t2]} not supported for disjoint`);
+    } else if (isRectlike(t1) && isRectlike(t2)) {
+      // Arbitrarily using x size, TODO: fix this to work more generally
+      const r1 = mul(constOf(0.5), min(s1.w.contents, s1.h.contents));
+      const r2 = mul(constOf(0.5), min(s2.w.contents, s2.h.contents));
+      return noIntersect(s1.center.contents, r1, s2.center.contents, r2);
+    } else {
+      // TODO (new case): I guess we might need Rectangle disjoint from polyline? Unless they repel each other?
+      throw new Error(`${[t1, t2]} not supported for disjoint`);
+    }
   },
 
+  /**
+   * Require that two linelike shapes `l1` and `l2` are not crossing (with optional offset `offset` -- TODO: currently not accounted for).
+   */
+  notCrossing: (
+    [t1, s1]: [string, any],
+    [t2, s2]: [string, any],
+    offset = 5.0
+  ) => {
+    if (isLinelike(t1) && isLinelike(t2)) {
+      // If the lines intersect, return the smallest distance squared between their endpoints (assuming the starts and ends "correspond" -- but not geometrically necessary.) TODO -- Try every pair of distances? (end -> start)
+      // Else, return 0.
+      // The idea is to minimize the distance between the 'crossing' endpoints, so the lines uncross. Though I guess taking the min may make this discontinuous?
+
+      return ifCond(
+        intersects(
+          s1.start.contents,
+          s1.end.contents,
+          s2.start.contents,
+          s2.end.contents
+        ),
+        min(
+          ops.vdistsq(s1.start.contents, s2.start.contents),
+          ops.vdistsq(s1.start.contents, s2.start.contents)
+        ),
+        constOf(0)
+      );
+    } else {
+      throw new Error(`${[t1, t2]} not supported for notCrossing`);
+    }
+  },
   /**
    * Require that shape `s1` is smaller than `s2` with some offset `offset`.
    */
@@ -317,7 +414,7 @@ export const constrDict = {
     [t2, s2]: [string, any],
     padding = 10
   ) => {
-    if (t1 === "Text" && t2 === "Circle") {
+    if (isRectlike(t1) && t2 === "Circle") {
       const textR = max(s1.w.contents, s1.h.contents);
       const d = ops.vdist(fns.center(s1), fns.center(s2));
       return sub(add(add(s2.r.contents, textR), constOfIf(padding)), d);
@@ -362,9 +459,9 @@ export const constrDict = {
   atDist: ([t1, s1]: [string, any], [t2, s2]: [string, any], offset: VarAD) => {
     // TODO: Account for the size/radius of the initial point, rather than just the center
 
-    if (t2 === "Text") {
+    if (isRectlike(t2)) {
       let pt;
-      if (t1 === "Arrow") {
+      if (isLinelike(t1)) {
         // Position label close to the arrow's end
         pt = { x: s1.end.contents[0], y: s1.end.contents[1] };
       } else {
@@ -376,28 +473,9 @@ export const constrDict = {
       // TODO: Make this a GPI property
       // TODO: Do this properly; Port the matrix stuff in `textPolygonFn` / `textPolygonFn2` in Shapes.hs
       // I wrote a version simplified to work for rectangles
-
       const text = s2;
-      // TODO: Simplify this code since I don't actually use `textPts`
-      const halfWidth = div(text.w.contents, constOf(2.0));
-      const halfHeight = div(text.h.contents, constOf(2.0));
-      const nhalfWidth = neg(halfWidth);
-      const nhalfHeight = neg(halfHeight);
       const textCenter = fns.center(text);
-      // CCW: TR, TL, BL, BR
-      const textPts = [
-        [halfWidth, halfHeight],
-        [nhalfWidth, halfHeight],
-        [nhalfWidth, nhalfHeight],
-        [halfWidth, nhalfHeight],
-      ].map((p) => ops.vadd(textCenter, p));
-
-      const rect = {
-        minX: textPts[1][0],
-        maxX: textPts[0][0],
-        minY: textPts[2][1],
-        maxY: textPts[0][1],
-      };
+      const rect = bbox(textCenter, text.w.contents, text.h.contents);
 
       // TODO: Rewrite this with `ifCond`
       // If the point is inside the box, push it outside w/ `noIntersect`
@@ -444,10 +522,44 @@ export const constrDict = {
   },
 
   /**
-   * Require that the value `x` is less than the value `y`
+   * Require that the value `x` is less than the value `y` with optional offset `padding`
    */
-  lessThan: (x: VarAD, y: VarAD) => {
-    return sub(x, max(x, y));
+  lessThan: (x: VarAD, y: VarAD, padding = 0) => {
+    return add(sub(x, y), constOfIf(padding));
+  },
+
+  /**
+   * Require that the value `x` is less than the value `y`, with steeper penalty
+   */
+  lessThanSq: (x: VarAD, y: VarAD) => {
+    // if x < y then 0 else (x - y)^2
+    return ifCond(lt(x, y), constOf(0), squared(sub(x, y)));
+  },
+
+  /**
+   * Require that line `s1` is horizontal
+   */
+  horizontal: ([t1, s1]: [string, any]) => {
+    if (t1 == "Line") {
+      const y1 = s1.start.contents[1];
+      const y2 = s1.end.contents[1];
+      return equalHard(y1, y2);
+    } else {
+      throw Error(`unsupported shape for 'horizontal': ${t1}`);
+    }
+  },
+
+  /**
+   * Require that the end point of line `s1` is to the right of the start point
+   */
+  rightwards: ([t1, s1]: [string, any]) => {
+    if (t1 == "Line") {
+      const x1 = s1.start.contents[0];
+      const x2 = s1.end.contents[0];
+      return sub(x1, x2);
+    } else {
+      throw Error(`unsupported shape for 'rightwards': ${t1}`);
+    }
   },
 };
 
@@ -474,7 +586,7 @@ const equalHard = (x: VarAD, y: VarAD) => {
 };
 
 /**
- * Require that a shape at `center1` with radius `r1` not intersect a shape at `center2` with radius `r2`.
+ * Require that a shape at `center1` with radius `r1` not intersect a shape at `center2` with radius `r2` with optional padding `padding`. (For a non-circle shape, its radius should be half of the shape's general "width")
  */
 const noIntersect = (
   center1: VarAD[],
@@ -615,4 +727,79 @@ const closestPt_PtSeg = (pt: VarAD[], [start, end]: VarAD[][]): VarAD[] => {
  */
 const clamp = ([l, r]: number[], x: VarAD): VarAD => {
   return max(constOf(l), min(constOf(r), x));
+};
+
+/**
+ * returns true iff the line from `(a,b)` -> `(c,d)` intersects with `(p,q)` -> `(r,s)`
+ */
+// https://stackoverflow.com/questions/9043805/test-if-two-lines-intersect-javascript-function
+// TODO: Check this function more thoroughly (seems to work fine in Style, though)
+const intersects = (
+  l1_p1: VarAD[],
+  l1_p2: VarAD[],
+  l2_p1: VarAD[],
+  l2_p2: VarAD[]
+) => {
+  const [[a, b], [c, d]] = [l1_p1, l1_p2];
+  const [[p, q], [r, s]] = [l2_p1, l2_p2];
+
+  // const det = (c - a) * (s - q) - (r - p) * (d - b);
+  const det = sub(mul(sub(c, a), sub(s, q)), mul(sub(r, p), sub(d, b)));
+  // const lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+  // const gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+  const lambda = div(
+    add(mul(sub(s, q), sub(r, a)), mul(sub(p, r), sub(s, b))),
+    det
+  );
+  const gamma = div(
+    add(mul(sub(b, d), sub(r, a)), mul(sub(c, a), sub(s, b))),
+    det
+  );
+  const o = constOf(0);
+  const l = constOf(1);
+  const fals = constOf(0);
+
+  // if (det === 0) { return false; }
+  // return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+  return ifCond(
+    eq(det, o),
+    fals,
+    and(and(lt(o, lambda), lt(lambda, l)), and(lt(o, gamma), lt(gamma, l)))
+  );
+};
+
+/**
+ * Return the bounding box of an axis-aligned box-like shape given by `center`, width `w`, height `h` as an object with `minX, maxX, minY, maxY`.
+ */
+export const bbox = (center: VecAD, w: VarAD, h: VarAD): any => {
+  const halfWidth = div(w, constOf(2.0));
+  const halfHeight = div(h, constOf(2.0));
+  const nhalfWidth = neg(halfWidth);
+  const nhalfHeight = neg(halfHeight);
+  // CCW: TR, TL, BL, BR
+  const pts = [
+    [halfWidth, halfHeight],
+    [nhalfWidth, halfHeight],
+    [nhalfWidth, nhalfHeight],
+    [halfWidth, nhalfHeight],
+  ].map((p) => ops.vadd(center, p));
+
+  const rect = {
+    minX: pts[1][0],
+    maxX: pts[0][0],
+    minY: pts[2][1],
+    maxY: pts[0][1],
+  };
+
+  return rect;
+};
+
+/**
+ * Return numerically-encoded boolean indicating whether `x \in [l, r]`.
+ */
+export const inRange = (x: VarAD, l: VarAD, r: VarAD): VarAD => {
+  if (l.val > r.val) throw Error("invalid range"); // TODO do this range check better
+  const fals = constOf(0);
+  const tru = constOf(1);
+  return ifCond(and(gt(x, l), lt(x, r)), tru, fals);
 };

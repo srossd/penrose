@@ -1,37 +1,62 @@
-Object o {
-    -- object should be as horizontal as possible
+canvas {
+    width = 1000.
+    height = 600.
 
-    vec2 o.v1 = (?, ?)
-    vec2 o.v2 = (?, ?)
+    shape box = Rectangle {
+        w: width
+        h: height
+
+        center: (0., 0.)
+
+        strokeColor: rgba(0., 0., 0., 1.)
+        strokeWidth: 3.
+
+        color: rgba(1., 1., 1., 1.)
+    }
+}
+
+Object o {
+
+    naturalLength = 150.
+    o.tensorRank = 1.
+    o.tensorImbalance = 0.
+
+    -- o.leftAttached = false
+    -- o.rightAttached = false
 
     shape o.shape = Line {
-        start: o.v1
-        end: o.v2
+        -- start: (0., ?)
+        -- end: (canvas.width, ?)
 
         color: rgba(0., 0., 0., 1.)
         thickness: 5.
     }
 
-    ensure equal(o.v1[1], o.v2[1]) -- ensure lines are horizontal
-    ensure lessThan(o.v1[0], o.v2[0]) -- ensure lines move from left to right
+    o.shape above canvas.box
 
-    -- lines should have a nice length, roughly equal to one another
+    -- ensure contains(canvas.box, o.shape)
+    
+    ensure horizontal(o.shape) -- ensure lines are horizontal
+    ensure rightwards(o.shape) -- ensure lines move from left to right
+
+    encourage lengthNear(o.shape, naturalLength)
 }
 
 Object o 
 where o := tensor(a, b) 
 with Object a; Object b {
-    override o.shape.color = rgba(0.7, 0.3, 0.9, 0.5)
+    override o.tensorRank = a.tensorRank + b.tensorRank
+    override o.tensorImbalance = b.tensorRank - a.tensorRank
 
-    override a.v1[0] = o.v1[0]
-    override a.v1[1] = o.v1[1] + 50.
-    override b.v1[0] = o.v1[0]
-    override b.v1[1] = o.v1[1] - 50.
-    
-    override a.v2[0] = o.v2[0]
-    override a.v2[1] = o.v2[1] + 50.
-    override b.v2[0] = o.v2[0]
-    override b.v2[1] = o.v2[1] - 50.
+    override o.shape.color = rgba(0., 0., 0., 0.2)
+
+    override a.shape.start = o.shape.start + (0., 50.*a.tensorRank)
+    -- component version gives "Cannot read property 'tag' of undefined"
+    -- override a.shape.start[0] = o.shape.start[0]
+    -- override a.shape.start[1] = o.shape.start[1] + 50.*a.tensorRank
+    override b.shape.start = o.shape.start + (0., -50.*b.tensorRank)
+    override a.shape.end = o.shape.end + (0., 50.*a.tensorRank)
+    override b.shape.end = o.shape.end + (0., -50.*b.tensorRank)
 }
 
 Morphism m {
@@ -39,23 +64,32 @@ Morphism m {
     shape m.shape = Rectangle {
         w: 100.
         h: 300.
+
+        strokeColor: rgba(0., 0., 0., 1.)
+        strokeWidth: 3.
     }
 
     shape m.text = Text {
+        center: m.shape.center
         string: m.label
         fontSize: "30pt"
     }
 
-    ensure contains(m.shape, m.text) -- keep label inside box
+    m.text above m.shape
+    m.shape above canvas.box
+
+    ensure contains(canvas.box, m.shape)
+    -- ensure contains(m.shape, m.text) -- keep label inside box
 }
 
 Morphism m
 where m := join(a, b)
 with Object a; Object b {
     -- attach objects to morphism
-    override a.v2[0] = m.shape.center[0] - m.shape.w/2.
-    override b.v1[0] = m.shape.center[0] + m.shape.w/2.
 
-    override a.v2[1] = m.shape.center[1]
-    override b.v1[1] = m.shape.center[1]
+    override a.shape.end = m.shape.center + (-m.shape.w/2., 50.*a.tensorImbalance)
+    override b.shape.start = m.shape.center + (m.shape.w/2., 50.*b.tensorImbalance)
+
+    -- override a.rightAttached = true
+    -- override b.leftAttached = true
 }
