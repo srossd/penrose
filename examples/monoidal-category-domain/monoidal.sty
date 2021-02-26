@@ -28,7 +28,7 @@ Object o {
         -- start: (0., ?)
         -- end: (canvas.width, ?)
 
-        color: rgba(0., 0., 0., 1.)
+        -- color: rgba(0., 0., 0., 1.)
         thickness: 5.
     }
 
@@ -40,23 +40,6 @@ Object o {
     ensure rightwards(o.shape) -- ensure lines move from left to right
 
     encourage lengthNear(o.shape, naturalLength)
-}
-
-Object o 
-where o := tensor(a, b) 
-with Object a; Object b {
-    override o.tensorRank = a.tensorRank + b.tensorRank
-    override o.tensorImbalance = b.tensorRank - a.tensorRank
-
-    override o.shape.color = rgba(0., 0., 0., 0.2)
-
-    override a.shape.start = o.shape.start + (0., 50.*a.tensorRank)
-    -- component version gives "Cannot read property 'tag' of undefined"
-    -- override a.shape.start[0] = o.shape.start[0]
-    -- override a.shape.start[1] = o.shape.start[1] + 50.*a.tensorRank
-    override b.shape.start = o.shape.start + (0., -50.*b.tensorRank)
-    override a.shape.end = o.shape.end + (0., 50.*a.tensorRank)
-    override b.shape.end = o.shape.end + (0., -50.*b.tensorRank)
 }
 
 Morphism m {
@@ -82,6 +65,28 @@ Morphism m {
     -- ensure contains(m.shape, m.text) -- keep label inside box
 }
 
+Object o; Morphism m {
+    ensure disjoint(m.shape, o.shape, 30.) -- as long as a free object line is forced to extend to the left/right of the canvas, this will require that o.shape is at least 30px from the top/bottom of the morphism
+}
+
+Object o 
+where o := tensor(a, b) 
+with Object a; Object b {
+    override o.tensorRank = a.tensorRank + b.tensorRank
+    override o.tensorImbalance = b.tensorRank - a.tensorRank
+
+    override o.shape.color = rgba(0., 0., 0., 0.2)
+    override o.shape.style = "dashed"
+
+    override a.shape.start = o.shape.start + (0., 50.*a.tensorRank)
+    -- component version gives "Cannot read property 'tag' of undefined"
+    -- override a.shape.start[0] = o.shape.start[0]
+    -- override a.shape.start[1] = o.shape.start[1] + 50.*a.tensorRank
+    override b.shape.start = o.shape.start + (0., -50.*b.tensorRank)
+    override a.shape.end = o.shape.end + (0., 50.*a.tensorRank)
+    override b.shape.end = o.shape.end + (0., -50.*b.tensorRank)
+}
+
 Morphism m
 where m := join(a, b)
 with Object a; Object b {
@@ -89,6 +94,8 @@ with Object a; Object b {
 
     override a.shape.end = m.shape.center + (-m.shape.w/2., 50.*a.tensorImbalance)
     override b.shape.start = m.shape.center + (m.shape.w/2., 50.*b.tensorImbalance)
+
+    -- ensure touchesLeftSide(a.shape, m.shape)
 
     -- override a.rightAttached = true
     -- override b.leftAttached = true
