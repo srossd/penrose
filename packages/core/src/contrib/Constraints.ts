@@ -535,6 +535,97 @@ export const constrDict = {
     // if x < y then 0 else (x - y)^2
     return ifCond(lt(x, y), constOf(0), squared(sub(x, y)));
   },
+
+  /**
+   * Require that line `s1` starts on `s2`, with the side of `s2` specified by `side` (0 = top, 1 = right, 2 = bottom, 3 = left)
+   */
+  startsOn: ([t1, s1]: [string, any], [t2, s2]: [string, any], side: VarAD) => {
+    if (isLinelike(t1) && isRectlike(t2)) {
+      let attach, bd1, bd2;
+
+      switch (side.val) {
+        case 1:
+          attach = equalHard(
+            s1.start.contents[0],
+            add(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
+          );
+          bd1 = sub(
+            s1.start.contents[1],
+            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
+          );
+          bd2 = sub(
+            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
+            s1.start.contents[1]
+          );
+
+          // require all three constraints
+          return max(attach, max(bd1, bd2));
+        case 3:
+          attach = equalHard(
+            s1.start.contents[0],
+            sub(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
+          );
+          bd1 = sub(
+            s1.start.contents[1],
+            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
+          );
+          bd2 = sub(
+            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
+            s1.start.contents[1]
+          );
+
+          // require all three constraints
+          return max(attach, max(bd1, bd2));
+        default:
+          throw new Error(`${side} is not a valid side (0, 1, 2, or 3)`);
+      }
+    } else throw new Error(`unsupported shapes for 'startsOn': ${t1}, ${t2}`);
+  },
+
+  /**
+   * Require that line `s1` ends on `s2`, with the side of `s2` specified by `side` (0 = top, 1 = right, 2 = bottom, 3 = left)
+   */
+  endsOn: ([t1, s1]: [string, any], [t2, s2]: [string, any], side: VarAD) => {
+    if (isLinelike(t1) && isRectlike(t2)) {
+      let attach, bd1, bd2;
+      switch (side.val) {
+        case 1:
+          attach = equalHard(
+            s1.end.contents[0],
+            add(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
+          );
+          bd1 = sub(
+            s1.end.contents[1],
+            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
+          );
+          bd2 = sub(
+            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
+            s1.end.contents[1]
+          );
+
+          // require all three constraints
+          return max(attach, max(bd1, bd2));
+        case 3:
+          attach = equalHard(
+            s1.end.contents[0],
+            sub(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
+          );
+          bd1 = sub(
+            s1.end.contents[1],
+            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
+          );
+          bd2 = sub(
+            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
+            s1.end.contents[1]
+          );
+
+          // require all three constraints
+          return max(attach, max(bd1, bd2));
+        default:
+          throw new Error(`${side} is not a valid side (0, 1, 2, or 3)`);
+      }
+    } else throw new Error(`unsupported shapes for 'startsOn': ${t1}, ${t2}`);
+  },
 };
 
 // -------- Helpers for writing objectives

@@ -92,10 +92,10 @@ where m := join(a, b)
 with Object a; Object b {
     -- attach objects to morphism
 
-    override a.shape.end = m.shape.center + (-m.shape.w/2., 50.*a.tensorImbalance)
-    override b.shape.start = m.shape.center + (m.shape.w/2., 50.*b.tensorImbalance)
-
-    -- ensure touchesLeftSide(a.shape, m.shape)
+    -- override a.shape.end = m.shape.center + (-m.shape.w/2., 50.*a.tensorImbalance)
+    -- override b.shape.start = m.shape.center + (m.shape.w/2., 50.*b.tensorImbalance)
+    ensure endsOn(a.shape, m.shape, 3) -- a.shape ends on the left of the morphism
+    ensure startsOn(b.shape, m.shape, 1) -- b.shape starts on the right of the morphism
 
     -- override a.rightAttached = true
     -- override b.leftAttached = true
