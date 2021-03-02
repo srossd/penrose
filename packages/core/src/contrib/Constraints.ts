@@ -205,7 +205,7 @@ export const objDict = {
   },
 
   /**
-   * todo(ross)
+   * Encourage the length of a line `s1` to be near `l`
    */
   lengthNear: ([t1, s1]: [string, any], l: any) => {
     if (t1 == "Line") {
@@ -534,32 +534,6 @@ export const constrDict = {
   lessThanSq: (x: VarAD, y: VarAD) => {
     // if x < y then 0 else (x - y)^2
     return ifCond(lt(x, y), constOf(0), squared(sub(x, y)));
-  },
-
-  /**
-   * Require that line `s1` is horizontal
-   */
-  horizontal: ([t1, s1]: [string, any]) => {
-    if (t1 == "Line") {
-      const y1 = s1.start.contents[1];
-      const y2 = s1.end.contents[1];
-      return equalHard(y1, y2);
-    } else {
-      throw Error(`unsupported shape for 'horizontal': ${t1}`);
-    }
-  },
-
-  /**
-   * Require that the end point of line `s1` is to the right of the start point
-   */
-  rightwards: ([t1, s1]: [string, any]) => {
-    if (t1 == "Line") {
-      const x1 = s1.start.contents[0];
-      const x2 = s1.end.contents[0];
-      return sub(x1, x2);
-    } else {
-      throw Error(`unsupported shape for 'rightwards': ${t1}`);
-    }
   },
 };
 

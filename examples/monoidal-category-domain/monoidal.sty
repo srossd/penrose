@@ -28,7 +28,7 @@ Object o {
         -- start: (0., ?)
         -- end: (canvas.width, ?)
 
-        -- color: rgba(0., 0., 0., 1.)
+        color: rgba(0., 0., 0., 1.)
         thickness: 5.
     }
 
@@ -36,8 +36,8 @@ Object o {
 
     -- ensure contains(canvas.box, o.shape)
     
-    ensure horizontal(o.shape) -- ensure lines are horizontal
-    ensure rightwards(o.shape) -- ensure lines move from left to right
+    ensure equal(o.shape.start[1], o.shape.end[1]) -- ensure lines are horizontal
+    ensure lessThan(o.shape.start[0], o.shape.end[0]) -- ensure lines move from left to right
 
     encourage lengthNear(o.shape, naturalLength)
 }
