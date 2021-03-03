@@ -21,8 +21,11 @@ Object o {
     o.tensorRank = 1.
     o.tensorImbalance = 0.
 
-    -- o.leftAttached = false
-    -- o.rightAttached = false
+    o.left = -canvas.width/2.
+    o.right = canvas.width/2.
+
+    o.minY = -canvas.height/2.
+    o.maxY = canvas.height/2.
 
     shape o.shape = Line {
         -- start: (0., ?)
@@ -36,10 +39,16 @@ Object o {
 
     -- ensure contains(canvas.box, o.shape)
     
-    ensure equal(o.shape.start[1], o.shape.end[1]) -- ensure lines are horizontal
-    ensure lessThan(o.shape.start[0], o.shape.end[0]) -- ensure lines move from left to right
+    ensure equal(o.shape.start[1], o.shape.end[1]) -- lines are horizontal
+    ensure lessThan(o.shape.start[0], o.shape.end[0]) -- lines move from left to right
 
-    encourage lengthNear(o.shape, naturalLength)
+    ensure equal(o.shape.start[0], o.left) -- once vec2s are fixed, don't use optimizer for this
+    ensure equal(o.shape.end[0], o.right)
+
+    ensure lessThan(o.shape.start[1], o.maxY, 30.)
+    ensure lessThan(o.minY, o.shape.start[1], 30.)
+
+    -- encourage lengthNear(o.shape, naturalLength)
 }
 
 Morphism m {
@@ -66,7 +75,7 @@ Morphism m {
 }
 
 Object o; Morphism m {
-    ensure disjoint(m.shape, o.shape, 30.) -- as long as a free object line is forced to extend to the left/right of the canvas, this will require that o.shape is at least 30px from the top/bottom of the morphism
+    ensure disjoint(m.shape, o.shape, 10.) -- as long as a free object line is forced to extend to the left/right of the canvas, this will require that o.shape is at least 10px from the top/bottom of the morphism
 }
 
 Object o 
@@ -78,13 +87,27 @@ with Object a; Object b {
     override o.shape.color = rgba(0., 0., 0., 0.2)
     override o.shape.style = "dashed"
 
-    override a.shape.start = o.shape.start + (0., 50.*a.tensorRank)
-    -- component version gives "Cannot read property 'tag' of undefined"
-    -- override a.shape.start[0] = o.shape.start[0]
-    -- override a.shape.start[1] = o.shape.start[1] + 50.*a.tensorRank
-    override b.shape.start = o.shape.start + (0., -50.*b.tensorRank)
-    override a.shape.end = o.shape.end + (0., 50.*a.tensorRank)
-    override b.shape.end = o.shape.end + (0., -50.*b.tensorRank)
+    override a.left = o.left
+    override b.left = o.left
+    override a.right = o.right
+    override b.right = o.right
+    override a.minY = o.minY
+    override b.minY = o.minY
+    override a.maxY = o.maxY
+    override b.maxY = o.maxY
+
+    ensure lessThan(a.shape.start[1], b.shape.start[1], 30.)
+
+    encourage equal(a.shape.start[1], o.shape.start[1] - 50.*a.tensorRank)
+    encourage equal(b.shape.start[1], o.shape.start[1] + 50.*b.tensorRank)
+
+    -- override a.shape.start = o.shape.start + (0., 50.*a.tensorRank)
+    -- -- component version gives "Cannot read property 'tag' of undefined"
+    -- -- override a.shape.start[0] = o.shape.start[0]
+    -- -- override a.shape.start[1] = o.shape.start[1] + 50.*a.tensorRank
+    -- override b.shape.start = o.shape.start + (0., -50.*b.tensorRank)
+    -- override a.shape.end = o.shape.end + (0., 50.*a.tensorRank)
+    -- override b.shape.end = o.shape.end + (0., -50.*b.tensorRank)
 }
 
 Morphism m
@@ -92,11 +115,15 @@ where m := join(a, b)
 with Object a; Object b {
     -- attach objects to morphism
 
-    -- override a.shape.end = m.shape.center + (-m.shape.w/2., 50.*a.tensorImbalance)
-    -- override b.shape.start = m.shape.center + (m.shape.w/2., 50.*b.tensorImbalance)
-    ensure endsOn(a.shape, m.shape, 3) -- a.shape ends on the left of the morphism
-    ensure startsOn(b.shape, m.shape, 1) -- b.shape starts on the right of the morphism
+    override a.right = m.shape.center[0] - m.shape.w/2.
+    override b.left = m.shape.center[0] + m.shape.w/2.
 
-    -- override a.rightAttached = true
-    -- override b.leftAttached = true
+    override a.minY = m.shape.center[1] - m.shape.h/2.
+    override a.maxY = m.shape.center[1] + m.shape.h/2.
+
+    override b.minY = m.shape.center[1] - m.shape.h/2.
+    override b.maxY = m.shape.center[1] + m.shape.h/2.
+
+    encourage equal(a.shape.start[1], m.shape.center[1] - 50.*a.tensorImbalance)
+    encourage equal(b.shape.start[1], m.shape.center[1] - 50.*b.tensorImbalance)
 }

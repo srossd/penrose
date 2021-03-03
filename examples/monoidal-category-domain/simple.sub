@@ -1,12 +1,20 @@
-Object A, B, C, D
-Object E, F
+-- Object A, B, C, D
+-- Object E, F
 
-Object ab := tensor(A, B)
-Object abc := tensor(ab, C)
-Morphism F2 := join(abc, D)
-Object de := tensor(D, E)
-Morphism G := join(de, F)
+-- Object ab := tensor(A, B)
+-- Object abc := tensor(ab, C)
+-- Morphism F2 := join(abc, D)
+-- Object de := tensor(D, E)
+-- Morphism G := join(de, F)
+
+-- AutoLabel All
+-- Label F2 $F^2$
+-- Label G $G$
+
+-- Even this simple example freezes up when the Object initially intersects the Morphism
+-- Anything more complicated makes things crash for me
+
+Object A
+Morphism F
 
 AutoLabel All
-Label F2 $F^2$
-Label G $G$

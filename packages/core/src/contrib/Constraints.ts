@@ -347,15 +347,33 @@ export const constrDict = {
   ) => {
     if (t1 === "Circle" && t2 === "Circle") {
       const d = ops.vdist(fns.center(s1), fns.center(s2));
-      const o = [s1.r.contents, s2.r.contents, varOf(10.0)];
+      const o = [s1.r.contents, s2.r.contents, varOf(offset)];
       return sub(addN(o), d);
     } else if (isRectlike(t1) && isLinelike(t2)) {
-      const [text, seg] = [s1, s2];
-      const centerT = fns.center(text);
+      const [rect, seg] = [s1, s2];
+      const pts = bboxPts(
+        rect.center.contents,
+        rect.w.contents,
+        rect.h.contents,
+        offset
+      );
       const endpts = linePts(seg);
-      const cp = closestPt_PtSeg(centerT, endpts);
-      const lenApprox = div(text.w.contents, constOf(2.0));
-      return sub(add(lenApprox, constOfIf(offset)), ops.vdist(centerT, cp));
+      const dists = pts.map((p: any) =>
+        ops.vdist(p, closestPt_PtSeg(p, endpts))
+      );
+      const minDist = dists.reduce((x: any, y: any) => min(x, y), constOf(1e6));
+      const intersection = [0, 1, 2, 3]
+        .map((i: any) =>
+          intersects(
+            seg.start.contents,
+            seg.end.contents,
+            pts[i],
+            pts[(i + 1) % 4]
+          )
+        )
+        .reduce((a: any, b: any) => max(a, b), constOf(0));
+
+      return ifCond(intersection, minDist, constOf(0));
     } else if (isRectlike(t1) && isRectlike(t2)) {
       // Arbitrarily using x size, TODO: fix this to work more generally
       const r1 = mul(constOf(0.5), min(s1.w.contents, s1.h.contents));
@@ -515,10 +533,11 @@ export const constrDict = {
   },
 
   /**
-   * Require that the value `x` is less than the value `y`
+   * Require that the value `x` is equal to the value `y`
    */
-  equal: (x: VarAD, y: VarAD) => {
-    return equalHard(x, y);
+  equal: (x: VarAD, y: VarAD, flag = true) => {
+    if (flag) return equalHard(x, y);
+    else return constOf(0);
   },
 
   /**
@@ -534,97 +553,6 @@ export const constrDict = {
   lessThanSq: (x: VarAD, y: VarAD) => {
     // if x < y then 0 else (x - y)^2
     return ifCond(lt(x, y), constOf(0), squared(sub(x, y)));
-  },
-
-  /**
-   * Require that line `s1` starts on `s2`, with the side of `s2` specified by `side` (0 = top, 1 = right, 2 = bottom, 3 = left)
-   */
-  startsOn: ([t1, s1]: [string, any], [t2, s2]: [string, any], side: VarAD) => {
-    if (isLinelike(t1) && isRectlike(t2)) {
-      let attach, bd1, bd2;
-
-      switch (side.val) {
-        case 1:
-          attach = equalHard(
-            s1.start.contents[0],
-            add(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
-          );
-          bd1 = sub(
-            s1.start.contents[1],
-            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
-          );
-          bd2 = sub(
-            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
-            s1.start.contents[1]
-          );
-
-          // require all three constraints
-          return max(attach, max(bd1, bd2));
-        case 3:
-          attach = equalHard(
-            s1.start.contents[0],
-            sub(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
-          );
-          bd1 = sub(
-            s1.start.contents[1],
-            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
-          );
-          bd2 = sub(
-            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
-            s1.start.contents[1]
-          );
-
-          // require all three constraints
-          return max(attach, max(bd1, bd2));
-        default:
-          throw new Error(`${side} is not a valid side (0, 1, 2, or 3)`);
-      }
-    } else throw new Error(`unsupported shapes for 'startsOn': ${t1}, ${t2}`);
-  },
-
-  /**
-   * Require that line `s1` ends on `s2`, with the side of `s2` specified by `side` (0 = top, 1 = right, 2 = bottom, 3 = left)
-   */
-  endsOn: ([t1, s1]: [string, any], [t2, s2]: [string, any], side: VarAD) => {
-    if (isLinelike(t1) && isRectlike(t2)) {
-      let attach, bd1, bd2;
-      switch (side.val) {
-        case 1:
-          attach = equalHard(
-            s1.end.contents[0],
-            add(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
-          );
-          bd1 = sub(
-            s1.end.contents[1],
-            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
-          );
-          bd2 = sub(
-            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
-            s1.end.contents[1]
-          );
-
-          // require all three constraints
-          return max(attach, max(bd1, bd2));
-        case 3:
-          attach = equalHard(
-            s1.end.contents[0],
-            sub(s2.center.contents[0], div(s2.w.contents, constOf(2.0)))
-          );
-          bd1 = sub(
-            s1.end.contents[1],
-            add(s2.center.contents[1], div(s2.h.contents, constOf(2)))
-          );
-          bd2 = sub(
-            sub(s2.center.contents[1], div(s2.h.contents, constOf(2))),
-            s1.end.contents[1]
-          );
-
-          // require all three constraints
-          return max(attach, max(bd1, bd2));
-        default:
-          throw new Error(`${side} is not a valid side (0, 1, 2, or 3)`);
-      }
-    } else throw new Error(`unsupported shapes for 'startsOn': ${t1}, ${t2}`);
   },
 };
 
@@ -834,11 +762,16 @@ const intersects = (
 };
 
 /**
- * Return the bounding box of an axis-aligned box-like shape given by `center`, width `w`, height `h` as an object with `minX, maxX, minY, maxY`.
+ * Return the vertices of the bounding box of an axis-aligned box-like shape given by `center`, width `w`, height `h` as a sequence of points (CCW starting from upper right)
  */
-export const bbox = (center: VecAD, w: VarAD, h: VarAD): any => {
-  const halfWidth = div(w, constOf(2.0));
-  const halfHeight = div(h, constOf(2.0));
+export const bboxPts = (
+  center: VecAD,
+  w: VarAD,
+  h: VarAD,
+  padding = 0.0
+): any => {
+  const halfWidth = add(div(w, constOf(2.0)), constOfIf(padding));
+  const halfHeight = add(div(h, constOf(2.0)), constOfIf(padding));
   const nhalfWidth = neg(halfWidth);
   const nhalfHeight = neg(halfHeight);
   // CCW: TR, TL, BL, BR
@@ -848,6 +781,15 @@ export const bbox = (center: VecAD, w: VarAD, h: VarAD): any => {
     [nhalfWidth, nhalfHeight],
     [halfWidth, nhalfHeight],
   ].map((p) => ops.vadd(center, p));
+
+  return pts;
+};
+
+/**
+ * Return the bounding box of an axis-aligned box-like shape given by `center`, width `w`, height `h` as an object with `minX, maxX, minY, maxY`.
+ */
+export const bbox = (center: VecAD, w: VarAD, h: VarAD): any => {
+  const pts = bboxPts(center, w, h);
 
   const rect = {
     minX: pts[1][0],
