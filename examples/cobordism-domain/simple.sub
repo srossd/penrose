@@ -1,0 +1,7 @@
+PairOfPants join
+InversePairOfPants split, split2
+Cylinder prop
+
+attached4(split, join)
+attached(join, prop)
+attached2(prop, split2)

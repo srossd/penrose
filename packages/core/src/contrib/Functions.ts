@@ -20,6 +20,7 @@ import {
   sqrt,
   absVal,
   ifCond,
+  constOfIf,
 } from "engine/Autodiff";
 import { Elem, SubPath } from "types/shapeTypes";
 import { bbox, inRange } from "contrib/Constraints"; // TODO move this into graphics utils?
@@ -219,6 +220,62 @@ export const compDict = {
     const pathTypeStr = pathType === "closed" ? "Closed" : "Open";
     const elems: Elem<VarAD>[] = pts.map((e) => ({ tag: "Pt", contents: e }));
     const path: SubPath<VarAD> = { tag: pathTypeStr, contents: elems };
+    return { tag: "PathDataV", contents: [path] };
+  },
+
+  arcPath: (
+    start: VarAD[],
+    t1: VarAD,
+    t2: any,
+    r: any,
+    rr = constOf(-1.0)
+  ): IPathDataV<VarAD> => {
+    const rad = constOf(Math.PI / 180);
+    const r2 = rr.val < 0 ? r : rr;
+    const ct = ops.vsub(start, [
+      mul(r, cos(mul(t1, rad))),
+      mul(r2, sin(mul(t1, rad))),
+    ]);
+    const vecs = range(
+      (t1.val * Math.PI) / 180,
+      (t2.val * Math.PI) / 180,
+      t1.val < t2.val ? 0.05 : -0.05
+    ).map((t) =>
+      ops.vadd(ct, [mul(r, cos(constOf(t))), mul(r2, sin(constOf(t)))])
+    );
+
+    const pts = vecs.map((v) => toPt(v));
+
+    const elems: Elem<VarAD>[] = pts.map((e) => ({ tag: "Pt", contents: e }));
+    const path: SubPath<VarAD> = { tag: "Open", contents: elems };
+    return { tag: "PathDataV", contents: [path] };
+  },
+
+  bezier: (pts: VecAD[]): IPathDataV<VarAD> => {
+    const binoms = range(pts.length).map(
+      (i) =>
+        range(pts.length - 1, pts.length - i - 1, -1).reduce(
+          (a, b) => a * b,
+          1
+        ) / range(1, i + 1).reduce((a, b) => a * b, 1)
+    );
+    console.error(binoms);
+    const vecs = range(0, 1, 0.01).map((t) =>
+      range(pts.length)
+        .map((i) =>
+          ops.vmul(
+            constOf(
+              binoms[i] * Math.pow(t, pts.length - 1 - i) * Math.pow(1 - t, i)
+            ),
+            pts[i]
+          )
+        )
+        .reduce((a, b) => ops.vadd(a, b))
+    );
+
+    const ps = vecs.map((v) => toPt(v));
+    const elems: Elem<VarAD>[] = ps.map((e) => ({ tag: "Pt", contents: e }));
+    const path: SubPath<VarAD> = { tag: "Open", contents: elems };
     return { tag: "PathDataV", contents: [path] };
   },
 

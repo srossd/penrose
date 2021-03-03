@@ -1,0 +1,309 @@
+const {
+    radius = 40.
+    aspect = 2.
+
+    fudge = 10.
+
+    segmentLength = 200.
+}
+
+Cylinder c {
+
+    c.y = ?
+    c.x1 = ?
+    c.x2 = ?
+
+    shape c.in = Path {
+        pathData: arcPath((c.x1 + const.radius/const.aspect, c.y), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape c.out = Path {
+        pathData: arcPath((c.x2 + const.radius/const.aspect, c.y), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape c.top = Line {
+        start: (c.x1, c.y + const.radius)
+        end: (c.x2, c.y + const.radius)
+        
+        color: rgba(0., 0., 0., 1.)
+        thickness: 5.
+    }
+
+    shape c.bottom = Line {
+        start: (c.x1, c.y - const.radius)
+        end: (c.x2, c.y - const.radius)
+        
+        color: rgba(0., 0., 0., 1.)
+        thickness: 5.
+    }
+
+    encourage equal(c.x2 - c.x1, const.segmentLength)
+
+    ensure lessThan(c.x2, 400.)
+    ensure lessThan(-400., c.x1)
+    ensure lessThan(c.y, 200.)
+    ensure lessThan(-200., c.y)
+}
+
+PairOfPants p {
+
+    p.x = ?
+    p.y = ?
+
+    shape p.in1 = Path {
+        pathData: arcPath((p.x + const.radius/const.aspect, p.y - const.segmentLength/2.), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+    
+
+    shape p.in2 = Path {
+        pathData: arcPath((p.x + const.radius/const.aspect, p.y + const.segmentLength/2.), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.out1 = Path {
+        pathData: arcPath((p.x + 1.5*const.segmentLength + const.radius/const.aspect, p.y), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.leg1 = Path {
+        pathData: bezier(((p.x, p.y - const.segmentLength/2. - const.radius), (p.x + const.segmentLength, p.y - const.segmentLength/2. - const.radius), (p.x + 0.5*const.segmentLength, p.y - const.radius), (p.x + 1.5*const.segmentLength, p.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.leg2 = Path {
+        pathData: bezier(((p.x, p.y + const.segmentLength/2. + const.radius), (p.x + const.segmentLength, p.y + const.segmentLength/2. + const.radius), (p.x + 0.5*const.segmentLength, p.y + const.radius), (p.x + 1.5*const.segmentLength, p.y + const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.groin = Path {
+        pathData: arcPath((p.x, p.y - const.segmentLength/2. + const.radius), -90., 90., 1.8*(const.segmentLength/2. - const.radius), const.segmentLength/2. - const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+}
+
+InversePairOfPants p {
+
+    p.x = ?
+    p.y = ?
+
+    shape p.out1 = Path {
+        pathData: arcPath((p.x + 1.5*const.segmentLength + const.radius/const.aspect, p.y - const.segmentLength/2.), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+    
+
+    shape p.out2 = Path {
+        pathData: arcPath((p.x + 1.5*const.segmentLength + const.radius/const.aspect, p.y + const.segmentLength/2.), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.in1 = Path {
+        pathData: arcPath((p.x + const.radius/const.aspect, p.y), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.leg1 = Path {
+        pathData: bezier(((p.x + 1.5*const.segmentLength, p.y - const.segmentLength/2. - const.radius), (p.x + 0.5*const.segmentLength, p.y - const.segmentLength/2. - const.radius), (p.x + const.segmentLength, p.y - const.radius), (p.x, p.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.leg2 = Path {
+        pathData: bezier(((p.x + 1.5*const.segmentLength, p.y + const.segmentLength/2. + const.radius), (p.x + 0.5*const.segmentLength, p.y + const.segmentLength/2. + const.radius), (p.x + const.segmentLength, p.y + const.radius), (p.x, p.y + const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape p.groin = Path {
+        pathData: arcPath((p.x + 1.5*const.segmentLength, p.y - const.segmentLength/2. + const.radius), -90., -270., 1.8*(const.segmentLength/2. - const.radius), const.segmentLength/2. - const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+}
+
+-- Cylinder with PairOfPants
+
+Cylinder c; PairOfPants p
+where attachedUpper(c, p) {
+    ensure equal(c.x2, p.x + const.fudge)
+    ensure equal(c.y, p.y + const.segmentLength/2.)
+
+    override c.out.color = rgba(1., 1., 1., 0.)
+    override p.in2.color = rgba(1., 1., 1., 0.)
+}
+
+Cylinder c; PairOfPants p
+where attachedLower(c, p) {
+    ensure equal(c.x2, p.x + const.fudge)
+    ensure equal(c.y, p.y - const.segmentLength/2.)
+
+    override c.out.color = rgba(1., 1., 1., 0.)
+    override p.in1.color = rgba(1., 1., 1., 0.)
+}
+
+Cylinder c; PairOfPants p
+where attached(p, c) {
+    ensure equal(c.x1, p.x + 1.5*const.segmentLength - const.fudge)
+    ensure equal(c.y, p.y)
+
+    override c.in.color = rgba(1., 1., 1., 0.)
+    override p.out1.color = rgba(1., 1., 1., 0.)
+}
+
+-- Cylinder with InversePairOfPants
+
+Cylinder c; InversePairOfPants p
+where attachedUpper2(p, c) {
+    ensure equal(c.x1, p.x + const.fudge)
+    ensure equal(c.y, p.y + const.segmentLength/2.)
+
+    override c.out.color = rgba(1., 1., 1., 0.)
+    override p.in2.color = rgba(1., 1., 1., 0.)
+}
+
+Cylinder c; InversePairOfPants p
+where attachedLower2(p, c) {
+    ensure equal(c.x2, p.x + const.fudge)
+    ensure equal(c.y, p.y - const.segmentLength/2.)
+
+    override c.out.color = rgba(1., 1., 1., 0.)
+    override p.in1.color = rgba(1., 1., 1., 0.)
+}
+
+Cylinder c; InversePairOfPants p
+where attached2(c, p) {
+    ensure equal(c.x2, p.x + const.fudge)
+    ensure equal(c.y, p.y)
+
+    override c.out.color = rgba(1., 1., 1., 0.)
+    override p.in1.color = rgba(1., 1., 1., 0.)
+}
+
+-- PairOfPants with InversePairOfPants
+
+PairOfPants p; InversePairOfPants pp
+where attached3(p, pp) {
+    ensure equal(p.x, pp.x - 1.5*const.segmentLength + const.fudge)
+    ensure equal(p.y, pp.y)
+
+    override p.out1.color = rgba(1., 1., 1., 0.)
+    override pp.in1.color = rgba(1., 1., 1., 0.)
+}
+
+-- InversePairOfPants with PairOfPants
+
+InversePairOfPants p; PairOfPants pp
+where attachedUpper4(p, pp) {
+    ensure equal(p.x, pp.x - 1.5*const.segmentLength + const.fudge)
+    ensure equal(p.y, pp.y + const.segmentLength)
+
+    override p.out1.color = rgba(1., 1., 1., 0.)
+    override pp.in2.color = rgba(1., 1., 1., 0.)
+}
+
+InversePairOfPants p; PairOfPants pp
+where attachedLower4(p, pp) {
+    ensure equal(p.x, pp.x - 1.5*const.segmentLength + const.fudge)
+    ensure equal(p.y, pp.y - const.segmentLength)
+
+    override p.out2.color = rgba(1., 1., 1., 0.)
+    override pp.in1.color = rgba(1., 1., 1., 0.)
+}
+
+InversePairOfPants p; PairOfPants pp
+where attached4(p, pp) {
+    ensure equal(p.x, pp.x - 1.5*const.segmentLength + 1.5*const.fudge)
+    ensure equal(p.y, pp.y)
+
+    override p.out1.color = rgba(1., 1., 1., 0.)
+    override p.out2.color = rgba(1., 1., 1., 0.)
+    override pp.in1.color = rgba(1., 1., 1., 0.)
+    override pp.in2.color = rgba(1., 1., 1., 0.)
+}
+
+Cylinder c1; Cylinder c2
+where attached5(c1, c2) {
+    override c1.x = c2.x - const.segmentLength + const.fudge
+    override c1.y = c2.y
+
+    override c1.out.color = rgba(1., 1., 1., 0.)
+    override c2.in.color = rgba(1., 1., 1., 0.)
+}
+
+PairOfPants p1; PairOfPants p2
+where attachedUpper6(p1, p2) {
+    override p1.x = p2.x - 1.5*const.segmentLength + const.fudge
+    override p1.y = p2.y - const.segmentLength/2.
+
+    override p1.out1.color = rgba(1., 1., 1., 0.)
+    override p2.in1.color = rgba(1., 1., 1., 0.)
+}
+
+PairOfPants p1; PairOfPants p2
+where attachedLower6(p1, p2) {
+    override p1.x = p2.x - 1.5*const.segmentLength + const.fudge
+    override p1.y = p2.y + const.segmentLength/2.
+
+    override p1.out1.color = rgba(1., 1., 1., 0.)
+    override p2.in2.color = rgba(1., 1., 1., 0.)
+}
+
+InversePairOfPants p1; InversePairOfPants p2
+where attachedUpper7(p1, p2) {
+    override p1.x = p2.x - 1.5*const.segmentLength + const.fudge
+    override p1.y = p2.y + const.segmentLength/2.
+
+    override p1.out1.color = rgba(1., 1., 1., 0.)
+    override p2.in1.color = rgba(1., 1., 1., 0.)
+}
+
+InversePairOfPants p1; InversePairOfPants p2
+where attachedLower7(p1, p2) {
+    override p1.x = p2.x - 1.5*const.segmentLength + const.fudge
+    override p1.y = p2.y - const.segmentLength/2.
+
+    override p1.out2.color = rgba(1., 1., 1., 0.)
+    override p2.in1.color = rgba(1., 1., 1., 0.)
+}
