@@ -97,6 +97,15 @@ export const objDict = {
   },
 
   /**
+   * Repel scalar `c` from another scalar `d`.
+   */
+  // TODO: Try to avoid NaNs/blowing up? add eps in denominator if c=d?
+  repelScalar: (c: any, d: any) => {
+    // 1/(c-d)^2
+    return inverse(squared(sub(constOfIf(c), constOfIf(d))));
+  },
+
+  /**
    * Try to center the arrow `arr` between the shapes `s2` and `s3` (they can also be any shapes with a center).
    */
   centerArrow: (
@@ -205,20 +214,28 @@ export const objDict = {
   },
 
   /**
-   * Encourage the length of a line `s1` to be near `l`
+   * Try to make scalar `c` near another scalar `goal`.
    */
-  lengthNear: ([t1, s1]: [string, any], l: any) => {
-    if (t1 == "Line") {
-      const p = s1.start.contents;
-      const q = s1.end.contents;
-      return squared(sub(ops.vdist(p, q), l));
-    } else {
-      throw Error(`unsupported shape for 'lengthNear': ${t1}`);
-    }
+  // TODO: Can these be typed as `VarAD`?
+  nearScalar: (c: any, goal: any) => {
+    return squared(sub(constOfIf(c), constOfIf(goal)));
   },
 };
 
 export const constrDict = {
+  /**
+   * Require that the end point of line `s1` is to the right of the start point
+   */
+  rightwards: ([t1, s1]: [string, any]) => {
+    if (t1 === "Line") {
+      const x1 = s1.start.contents[0];
+      const x2 = s1.end.contents[0];
+      return sub(x1, x2);
+    } else {
+      throw Error(`unsupported shape for 'rightwards': ${t1}`);
+    }
+  },
+
   /**
    * Require that a shape have a size less than some constant maximum, based on the type of the shape.
    */
@@ -338,6 +355,19 @@ export const constrDict = {
   },
 
   /**
+   * Make scalar `c` disjoint from a range `left, right`.
+   */
+  // TODO: NOTE: This doesn't seem to work super well w/ optimizer (though the math seems right). May be due to use of ifCond / discontinuous function.
+  disjointScalar: (c: any, left: any, right: any) => {
+    // if (x \in [l, r]) then min((x-l)^2, (x-r)^2) else 0
+    return ifCond(
+      inRange(constOfIf(c), constOfIf(left), constOfIf(right)),
+      min(squared(sub(c, left)), squared(sub(c, right))),
+      constOf(0)
+    );
+  },
+
+  /**
    * Require that a shape `s1` is disjoint from shape `s2`, based on the type of the shape, and with an optional `offset` between them (e.g. if `s1` should be disjoint from `s2` with margin `offset`).
    */
   disjoint: (
@@ -347,33 +377,15 @@ export const constrDict = {
   ) => {
     if (t1 === "Circle" && t2 === "Circle") {
       const d = ops.vdist(fns.center(s1), fns.center(s2));
-      const o = [s1.r.contents, s2.r.contents, varOf(offset)];
+      const o = [s1.r.contents, s2.r.contents, varOf(10.0)];
       return sub(addN(o), d);
     } else if (isRectlike(t1) && isLinelike(t2)) {
-      const [rect, seg] = [s1, s2];
-      const pts = bboxPts(
-        rect.center.contents,
-        rect.w.contents,
-        rect.h.contents,
-        offset
-      );
+      const [text, seg] = [s1, s2];
+      const centerT = fns.center(text);
       const endpts = linePts(seg);
-      const dists = pts.map((p: any) =>
-        ops.vdist(p, closestPt_PtSeg(p, endpts))
-      );
-      const minDist = dists.reduce((x: any, y: any) => min(x, y), constOf(1e6));
-      const intersection = [0, 1, 2, 3]
-        .map((i: any) =>
-          intersects(
-            seg.start.contents,
-            seg.end.contents,
-            pts[i],
-            pts[(i + 1) % 4]
-          )
-        )
-        .reduce((a: any, b: any) => max(a, b), constOf(0));
-
-      return ifCond(intersection, minDist, constOf(0));
+      const cp = closestPt_PtSeg(centerT, endpts);
+      const lenApprox = div(text.w.contents, constOf(2.0));
+      return sub(add(lenApprox, constOfIf(offset)), ops.vdist(centerT, cp));
     } else if (isRectlike(t1) && isRectlike(t2)) {
       // Arbitrarily using x size, TODO: fix this to work more generally
       const r1 = mul(constOf(0.5), min(s1.w.contents, s1.h.contents));
@@ -762,16 +774,11 @@ const intersects = (
 };
 
 /**
- * Return the vertices of the bounding box of an axis-aligned box-like shape given by `center`, width `w`, height `h` as a sequence of points (CCW starting from upper right)
+ * Return the bounding box of an axis-aligned box-like shape given by `center`, width `w`, height `h` as an object with `minX, maxX, minY, maxY`.
  */
-export const bboxPts = (
-  center: VecAD,
-  w: VarAD,
-  h: VarAD,
-  padding = 0.0
-): any => {
-  const halfWidth = add(div(w, constOf(2.0)), constOfIf(padding));
-  const halfHeight = add(div(h, constOf(2.0)), constOfIf(padding));
+export const bbox = (center: VecAD, w: VarAD, h: VarAD): any => {
+  const halfWidth = div(w, constOf(2.0));
+  const halfHeight = div(h, constOf(2.0));
   const nhalfWidth = neg(halfWidth);
   const nhalfHeight = neg(halfHeight);
   // CCW: TR, TL, BL, BR
@@ -781,15 +788,6 @@ export const bboxPts = (
     [nhalfWidth, nhalfHeight],
     [halfWidth, nhalfHeight],
   ].map((p) => ops.vadd(center, p));
-
-  return pts;
-};
-
-/**
- * Return the bounding box of an axis-aligned box-like shape given by `center`, width `w`, height `h` as an object with `minX, maxX, minY, maxY`.
- */
-export const bbox = (center: VecAD, w: VarAD, h: VarAD): any => {
-  const pts = bboxPts(center, w, h);
 
   const rect = {
     minX: pts[1][0],

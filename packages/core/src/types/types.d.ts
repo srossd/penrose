@@ -1,5 +1,33 @@
 // TODO: find a way to put this in index.d.ts
 declare module "eigen";
+
+//#region File IO
+
+/**
+ * Data structure for information of a program trio
+ */
+interface Trio {
+  substanceURI: string;
+  styleURI: string;
+  domainURI: string;
+  substanceName: string;
+  styleName: string;
+  domainName: string;
+  name: string;
+}
+
+/**
+ * Schema for the registry of working examples
+ */
+interface Registry {
+  substances: { name: string; URI: string };
+  styles: { name: string; URI: string };
+  domains: { name: string; URI: string };
+  trios: { substance: string; style: string; domain: string }[];
+}
+
+//#endregion
+
 //#region Shape/Evaluator-related types
 
 /**
@@ -110,10 +138,10 @@ interface IIntLit {
   contents: number;
 }
 
-interface IAFloat {
-  tag: "AFloat";
-  contents: AnnoFloat;
-}
+// interface IAFloat {
+//     tag: "AFloat";
+//     contents: AnnoFloat;
+// }
 
 interface IStringLit extends ASTNode {
   tag: "StringLit";
@@ -234,7 +262,7 @@ interface IThenOp {
   contents: [Expr, Expr];
 }
 
-type AnnoFloat = IFix | IVary;
+type AnnoFloat = IFix | IVary | IVaryAD;
 
 interface IFix extends ASTNode {
   tag: "Fix";
@@ -243,6 +271,11 @@ interface IFix extends ASTNode {
 
 interface IVary extends ASTNode {
   tag: "Vary";
+}
+
+interface IVaryAD extends ASTNode {
+  tag: "VaryAD";
+  contents: VarAD;
 }
 
 interface PropertyDecl extends ASTNode {
@@ -477,18 +510,6 @@ interface IQuadBezJoin<T> {
  * The diagram state modeling the original Haskell types
  */
 interface IState {
-  // COMBAK: Just for getting the JSON; remove this
-
-  // subProg: SubProg;
-  // styProg: StyProg;
-  // TODO: Get this into the Style compiler when available
-  // -- | 'SubOut' is the output of the Substance compiler, comprised of:
-  // -- * Substance AST
-  // -- * (Variable environment, Substance environment)
-  // -- * A mapping from Substance ids to their coresponding labels
-  // data SubOut =
-  //   SubOut SubProg (VarEnv, SubEnv) LabelMap
-
   varyingPaths: Path[];
   shapePaths: Path[];
   shapeProperties: any; // TODO: types
