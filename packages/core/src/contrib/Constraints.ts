@@ -25,6 +25,7 @@ import {
 import * as _ from "lodash";
 import { linePts } from "utils/OtherUtils";
 import { canvasSize } from "renderer/ShapeDef";
+import { VarAD, VecAD } from "types/ad";
 
 // Kinds of shapes
 /**
@@ -545,11 +546,10 @@ export const constrDict = {
   },
 
   /**
-   * Require that the value `x` is equal to the value `y`
+   * Require that the value `x` is less than the value `y`
    */
-  equal: (x: VarAD, y: VarAD, flag = true) => {
-    if (flag) return equalHard(x, y);
-    else return constOf(0);
+  equal: (x: VarAD, y: VarAD) => {
+    return equalHard(x, y);
   },
 
   /**
