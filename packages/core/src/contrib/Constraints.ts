@@ -103,7 +103,11 @@ export const objDict = {
   // TODO: Try to avoid NaNs/blowing up? add eps in denominator if c=d?
   repelScalar: (c: any, d: any) => {
     // 1/(c-d)^2
-    return inverse(squared(sub(constOfIf(c), constOfIf(d))));
+    const repelWeight = 10e7;
+    return mul(
+      constOf(repelWeight),
+      inverse(squared(sub(constOfIf(c), constOfIf(d))))
+    );
   },
 
   /**

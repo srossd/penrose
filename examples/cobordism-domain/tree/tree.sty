@@ -1,0 +1,57 @@
+const {
+    pointSize = 10.
+
+    thickness = 5.
+    edgeLength = 300.
+}
+
+Vertex v {
+    vec2 v.pos = (?, ?)
+
+    shape v.pt = Circle {
+        center: v.pos
+        r: const.pointSize
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 0.
+    }
+}
+
+Edge e {
+    vec2 e.start = (?, ?)
+    vec2 e.end = (?, ?)
+
+    shape e.line = Line {
+        start: e.start
+        end: e.end
+        thickness: const.thickness
+        color: rgba(0., 0., 0., 1)
+    }
+}
+
+Edge e
+where e := join(v1, v2) 
+with Vertex v1; Vertex v2 {
+    ensure equal(e.start[0], v1.pos[0])
+    ensure equal(e.start[1], v1.pos[1])
+
+    ensure equal(e.end[0], v2.pos[0])
+    ensure equal(e.end[1], v2.pos[1])
+
+    ensure equal(e.end[0] - e.start[0], const.edgeLength)
+
+    encourage equal(e.start[1], e.end[1])
+}
+
+Vertex v1; Vertex v2; Vertex v3; Edge e1; Edge e2
+where e1 := join(v1, v2); e2 := join(v1, v3) {
+    encourage repelScalar(v2.pos[1], v3.pos[1]) -- repel siblings
+}
+
+Vertex v1; Vertex v2; Vertex v3; Edge e1; Edge e2
+where e1 := join(v2, v1); e2 := join(v3, v1) {
+    encourage repelScalar(v2.pos[1], v3.pos[1]) -- repel co-parents
+}
+
+Edge e1; Edge e2 {
+    ensure lessThan((e1.start[1] - e2.start[1])*(e2.end[1] - e1.end[1]), 0) -- make edges non-overlapping
+}

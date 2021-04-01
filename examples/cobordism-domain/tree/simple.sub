@@ -1,0 +1,10 @@
+Vertex a, b1, b2
+Vertex c1, c2
+Vertex c3, c4
+
+Edge e1 := join(a, b1)
+Edge e2 := join(a, b2)
+Edge e3 := join(b1, c1)
+Edge e4 := join(b1, c2)
+Edge e5 := join(b2, c3)
+Edge e6 := join(b2, c4)
