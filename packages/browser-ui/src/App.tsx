@@ -14,6 +14,8 @@ import {
   PenroseError,
 } from "@penrose/core";
 
+import { isEqual } from "lodash";
+
 /**
  * (browser-only) Downloads any given exported SVG to the user's computer
  * @param svg
@@ -41,16 +43,23 @@ import SplitPane from "react-split-pane";
 import ButtonBar from "ui/ButtonBar";
 import { FileSocket, FileSocketResult } from "ui/FileSocket";
 
+const LOCALSTORAGE_SETTINGS = "browser-ui-settings-penrose";
+
+export interface ISettings {
+  showInspector: boolean;
+  autostep: boolean;
+  autoStepSize: number;
+}
+
 interface ICanvasState {
   data: PenroseState | undefined; // NOTE: if the backend is not connected, data will be undefined, TODO: rename this field
   error: PenroseError | null;
-  autostep: boolean;
   processedInitial: boolean;
   penroseVersion: string;
   history: PenroseState[];
-  showInspector: boolean;
   files: FileSocketResult | null;
   connected: boolean;
+  settings: ISettings;
 }
 
 const socketAddress = "ws://localhost:9160";
@@ -59,22 +68,20 @@ class App extends React.Component<any, ICanvasState> {
     data: undefined,
     error: null,
     history: [],
-    autostep: true,
     processedInitial: false, // TODO: clarify the semantics of this flag
     penroseVersion: "",
-    showInspector: true,
     files: null,
     connected: false,
+    settings: {
+      autostep: false,
+      showInspector: true,
+      autoStepSize: 10000,
+    },
   };
   public readonly buttons = React.createRef<ButtonBar>();
   public readonly canvasRef = React.createRef<HTMLDivElement>();
 
-  public modShapes = async (state: PenroseState) => {
-    await this.modCanvas(state); // is this the right way to call it
-  };
-
   // same as onCanvasState but doesn't alter timeline or involve optimization
-  // used only in modshapes
   public modCanvas = async (canvasState: PenroseState) => {
     await new Promise((r) => setTimeout(r, 1));
 
@@ -84,6 +91,7 @@ class App extends React.Component<any, ICanvasState> {
     });
     this.renderCanvas(canvasState);
   };
+  // TODO: reset history on resample/got stuff
   public onCanvasState = async (canvasState: PenroseState) => {
     // HACK: this will enable the "animation" that we normally expect
     await new Promise((r) => setTimeout(r, 1));
@@ -95,9 +103,9 @@ class App extends React.Component<any, ICanvasState> {
       error: null,
     });
     this.renderCanvas(canvasState);
-    const { autostep } = this.state;
-    if (autostep && !stateConverged(canvasState)) {
-      await this.step();
+    const { settings } = this.state;
+    if (settings.autostep && !stateConverged(canvasState)) {
+      await this.stepUntilConvergence();
     }
   };
   public downloadSVG = (): void => {
@@ -134,20 +142,34 @@ class App extends React.Component<any, ICanvasState> {
       );
     }
   };
+  public setSettings = (settings: ISettings) => {
+    this.setState({ settings });
+    localStorage.setItem(LOCALSTORAGE_SETTINGS, JSON.stringify(settings));
+  };
   public autoStepToggle = async () => {
-    this.setState({ autostep: !this.state.autostep });
-    if (this.state.autostep && this.state.processedInitial) {
-      await this.step();
+    const newSettings = {
+      ...this.state.settings,
+      autostep: !this.state.settings.autostep,
+    };
+    this.setState({
+      settings: newSettings,
+    });
+    localStorage.setItem(LOCALSTORAGE_SETTINGS, JSON.stringify(newSettings));
+    if (newSettings.autostep) {
+      await this.stepUntilConvergence();
     }
   };
 
   public step = (): void => {
-    const stepped = stepState(this.state.data);
+    const stepped = stepState(this.state.data, 1);
     void this.onCanvasState(stepped);
   };
 
   public stepUntilConvergence = (): void => {
-    const stepped = stepUntilConvergence(this.state.data);
+    const stepped = stepUntilConvergence(
+      this.state.data,
+      this.state.settings.autoStepSize
+    );
     void this.onCanvasState(stepped);
   };
 
@@ -189,12 +211,29 @@ class App extends React.Component<any, ICanvasState> {
   };
 
   public componentDidMount(): void {
+    const settings = localStorage.getItem(LOCALSTORAGE_SETTINGS);
+    // Overwrites if schema in-memory has different properties than in-storage
+    if (
+      !settings ||
+      !isEqual(
+        Object.keys(JSON.parse(settings)),
+        Object.keys(this.state.settings)
+      )
+    ) {
+      localStorage.setItem(
+        LOCALSTORAGE_SETTINGS,
+        JSON.stringify(this.state.settings)
+      );
+    } else {
+      const parsed = JSON.parse(settings);
+      this.setState({ settings: parsed });
+    }
     this.connectToSocket();
   }
 
   public updateData = async (data: PenroseState) => {
     this.setState({ data: { ...data } });
-    if (this.state.autostep) {
+    if (this.state.settings.autostep) {
       const stepped = stepState(data);
       this.onCanvasState(stepped);
     } else {
@@ -202,11 +241,11 @@ class App extends React.Component<any, ICanvasState> {
     }
   };
   public setInspector = async (showInspector: boolean) => {
-    this.setState({ showInspector });
-    // localStorage.setItem("showInspector", showInspector ? "true" : "false");
+    const newSettings = { ...this.state.settings, showInspector };
+    this.setSettings(newSettings);
   };
   public toggleInspector = async () => {
-    await this.setInspector(!this.state.showInspector);
+    await this.setInspector(!this.state.settings.showInspector);
   };
   public hideInspector = async () => {
     await this.setInspector(false);
@@ -230,9 +269,8 @@ class App extends React.Component<any, ICanvasState> {
   private renderApp() {
     const {
       data,
-      autostep,
+      settings,
       penroseVersion,
-      showInspector,
       history,
       files,
       error,
@@ -254,14 +292,14 @@ class App extends React.Component<any, ICanvasState> {
             downloadSVG={this.downloadSVG}
             downloadState={this.downloadState}
             stepUntilConvergence={this.stepUntilConvergence}
-            autostep={autostep}
+            autostep={settings.autostep}
             step={this.step}
             autoStepToggle={this.autoStepToggle}
             resample={this.resample}
             converged={data ? stateConverged(data) : false}
             initial={data ? stateInitial(data) : false}
             toggleInspector={this.toggleInspector}
-            showInspector={showInspector}
+            showInspector={settings.showInspector}
             files={files}
             ref={this.buttons}
             connected={connected}
@@ -273,7 +311,7 @@ class App extends React.Component<any, ICanvasState> {
             split="horizontal"
             defaultSize={400}
             style={{ position: "inherit" }}
-            className={this.state.showInspector ? "" : "soloPane1"}
+            className={this.state.settings.showInspector ? "" : "soloPane1"}
             pane2Style={{ overflow: "hidden" }}
           >
             <div style={{ width: "100%", height: "100%" }}>
@@ -285,13 +323,17 @@ class App extends React.Component<any, ICanvasState> {
               )}
               {error && <pre>errors encountered, check inspector</pre>}
             </div>
-            {showInspector && (
+            {settings.showInspector ? (
               <Inspector
                 history={history}
                 error={error}
                 onClose={this.toggleInspector}
-                modShapes={this.modShapes}
+                modCanvas={this.modCanvas}
+                settings={settings}
+                setSettings={this.setSettings}
               />
+            ) : (
+              <div />
             )}
           </SplitPane>
         </div>
@@ -300,12 +342,6 @@ class App extends React.Component<any, ICanvasState> {
   }
 
   public render() {
-    // NOTE: uncomment to render embeddable component
-    // return (
-    //   <div style={{ margin: "0 auto", width: "50%", height: "50%" }}>
-    //     {this.state.data && <Embed data={this.state.data} />}
-    //   </div>
-    // );
     return this.renderApp();
   }
 }

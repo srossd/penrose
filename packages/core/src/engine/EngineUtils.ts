@@ -375,7 +375,7 @@ export const makeTranslationNumeric = (trans: Translation): ITrans<number> => {
 
 //#region translation operations
 
-const dummySourceLoc = (): SourceLoc => {
+export const dummySourceLoc = (): SourceLoc => {
   return { line: -1, col: -1 };
 };
 
@@ -386,6 +386,20 @@ export const dummyASTNode = (o: any): ASTNode => {
     end: dummySourceLoc(),
     nodeType: "dummyASTNode", // COMBAK: Is this ok?
     children: [],
+  };
+};
+
+// COMBAK: Make fake identifier from string (e.g. if we don't have a source loc, make fake source loc)
+export const dummyIdentifier = (name: string): Identifier => {
+  return {
+    // COMBAK: Is this ok?
+    nodeType: "dummyNode",
+    children: [],
+    type: "value",
+    value: name,
+    tag: "Identifier",
+    start: dummySourceLoc(),
+    end: dummySourceLoc(),
   };
 };
 
@@ -822,7 +836,9 @@ export const insertExpr = (
 export const insertExprs = (
   ps: Path[],
   es: TagExpr<VarAD>[],
-  tr: Translation
+  tr: Translation,
+  compiling = false,
+  override = false
 ): Translation => {
   if (ps.length !== es.length) {
     throw Error("length should be the same");
@@ -831,7 +847,7 @@ export const insertExprs = (
   let tr2 = tr;
   for (let i = 0; i < ps.length; i++) {
     // Tr gets mutated
-    tr2 = insertExpr(ps[i], es[i], tr);
+    tr2 = insertExpr(ps[i], es[i], tr, compiling, override);
   }
 
   return tr2;
