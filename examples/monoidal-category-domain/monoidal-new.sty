@@ -1,0 +1,55 @@
+canvas {
+    width = 1000.
+    height = 600.
+
+    shape box = Rectangle {
+        w: width
+        h: height
+
+        center: (0., 0.)
+
+        strokeColor: rgba(0., 0., 0., 1.)
+        strokeWidth: 3.
+
+        color: rgba(1., 1., 1., 1.)
+    }
+}
+
+Object o {
+
+    o.left = ?
+    o.right = ?
+    o.y = ?
+
+    shape o.shape = Arrow {
+        start: (o.left, o.y)
+        end: (o.right, o.y)
+
+        color: rgba(0., 0., 0., 1.)
+        thickness: 5.
+    }
+
+    o.shape above canvas.box    
+
+    -- this appears to have no effect?
+    ensure lessThan(o.left, o.right) -- lines move from left to right
+}
+
+Morphism m {
+    shape m.shape = Rectangle {
+        w: 100.
+        h: 300.
+
+        strokeColor: rgba(0., 0., 0., 1.)
+        strokeWidth: 3.
+    }
+
+    shape m.text = Text {
+        center: m.shape.center
+        string: m.label
+        fontSize: "30pt"
+    }
+
+    m.text above m.shape
+    m.shape above canvas.box
+}
