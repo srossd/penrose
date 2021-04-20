@@ -103,13 +103,10 @@ export const objDict = {
    * Repel scalar `c` from another scalar `d`.
    */
   // TODO: Try to avoid NaNs/blowing up? add eps in denominator if c=d?
-  repelScalar: (c: any, d: any) => {
+  repelScalar: (c: any, d: any, weight = 1) => {
     // 1/(c-d)^2
-    const repelWeight = 10e7;
-    return mul(
-      constOf(repelWeight),
-      inverse(squared(sub(constOfIf(c), constOfIf(d))))
-    );
+    const repelWeight = mul(constOf(10e7), constOfIf(weight));
+    return mul(repelWeight, inverse(squared(sub(constOfIf(c), constOfIf(d)))));
   },
 
   /**
@@ -421,7 +418,7 @@ export const constrDict = {
     [t2, s2]: [string, any]
   ) => {
     if (!isRectlike(t1) || !isLinelike(t2)) {
-      throw Error("expected two line-like shapes");
+      throw Error("expected rect + line-like shapes");
     }
 
     const box = bbox(s1.center.contents, s1.w.contents, s1.h.contents);
@@ -468,6 +465,42 @@ export const constrDict = {
       overlap1D(
         [box.minX, box.maxX],
         [s2.start.contents[0], s2.end.contents[0]]
+      )
+    );
+  },
+
+  /**
+   * Make an AABB rectangle disjoint from a horizontal line by moving vertically
+   */
+  // TODO: Consolidate with disjointRectLineAA; test it
+  disjointRectLineAAHorizVertically: (
+    [t1, s1]: [string, any],
+    [t2, s2]: [string, any],
+    horizPadding = 0.0,
+    vertPadding = 0.0
+  ) => {
+    if (!isRectlike(t1) || !isLinelike(t2)) {
+      throw Error("expected rect + line-like shapes");
+    }
+
+    const box = bbox(
+      s1.center.contents,
+      add(s1.w.contents, constOfIf(horizPadding)),
+      add(s1.h.contents, constOfIf(vertPadding))
+    );
+    // TODO: Compute the bbox of the line in a nicer way
+    const line = bbox(
+      ops.vdiv(ops.vadd(s2.start.contents, s2.end.contents), constOf(2)),
+      absVal(sub(s2.start.contents[0], s2.end.contents[0])),
+      constOf(2)
+    );
+
+    return ifCond(
+      areDisjointBoxes(box, line),
+      constOf(0),
+      overlap1D(
+        [box.minY, box.maxY],
+        [s2.start.contents[1], s2.end.contents[1]]
       )
     );
   },

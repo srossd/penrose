@@ -17,11 +17,14 @@ canvas {
 
 Object o {
 
-    o.left = ?
-    o.right = ?
+    o.left = -canvas.width/2
+    o.right = canvas.width/2
     o.y = ?
 
-    shape o.shape = Arrow {
+    o.minY = -canvas.height/2
+    o.maxY = canvas.height/2
+
+    shape o.shape = Line {
         start: (o.left, o.y)
         end: (o.right, o.y)
 
@@ -31,14 +34,19 @@ Object o {
 
     o.shape above canvas.box    
 
-    -- this appears to have no effect?
     ensure lessThan(o.left, o.right) -- lines move from left to right
+
+    ensure lessThan(o.minY, o.y)
+    ensure lessThan(o.y, o.maxY)
+
+    ensure containsRectLineAA(canvas.box, o.shape)
 }
 
 Morphism m {
+
     shape m.shape = Rectangle {
         w: 100.
-        h: 300.
+        h: 200.
 
         strokeColor: rgba(0., 0., 0., 1.)
         strokeWidth: 3.
@@ -52,4 +60,50 @@ Morphism m {
 
     m.text above m.shape
     m.shape above canvas.box
+
+    ensure contains(canvas.box, m.shape)
+}
+
+Object o
+where o := tensor(a, b)
+with Object a; Object b {
+    override a.right = o.right
+    override a.left = o.left
+    override b.right = o.right
+    override b.left = o.left
+
+    override a.minY = o.minY
+    override a.maxY = o.maxY
+    override b.minY = o.minY
+    override b.maxY = o.maxY
+
+    override o.shape.color = rgba(0., 0., 0., 0.2)
+
+    encourage equal(a.y, o.y)
+    encourage equal(b.y, o.y)
+
+    encourage repelScalar(a.y, b.y)
+}
+
+Morphism m
+where m := join(a, b)
+with Object a; Object b {
+    override a.right = m.shape.center[0] - m.shape.w/2
+    override b.left = m.shape.center[0] + m.shape.w/2
+
+    override a.minY = m.shape.center[1] - m.shape.h/2
+    override a.maxY = m.shape.center[1] + m.shape.h/2
+    override b.minY = m.shape.center[1] - m.shape.h/2
+    override b.maxY = m.shape.center[1] + m.shape.h/2
+
+    encourage equal(a.y, m.shape.center[1])
+    encourage equal(b.y, m.shape.center[1])
+}
+
+Object o; Morphism m {
+    ensure disjointRectLineAAHorizVertically(m.shape, o.shape, -10., 10.)
+}
+
+Morphism m1; Morphism m2 {
+    ensure disjoint(m1.shape, m2.shape)
 }
