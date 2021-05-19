@@ -23,6 +23,7 @@ import {
   and,
   or,
   debug,
+  cos,
 } from "engine/Autodiff";
 import * as _ from "lodash";
 import { linePts } from "utils/OtherUtils";
@@ -719,6 +720,28 @@ export const constrDict = {
   lessThanSq: (x: VarAD, y: VarAD) => {
     // if x < y then 0 else (x - y)^2
     return ifCond(lt(x, y), constOf(0), squared(sub(x, y)));
+  },
+
+  /**
+   * Require that the line joining `(x1, y1)` to `(x2, y2)` is within `angle` of the horizontal
+   */
+
+  almostHorizontal: (
+    x1: VarAD,
+    y1: VarAD,
+    x2: VarAD,
+    y2: VarAD,
+    angle = 30
+  ) => {
+    const scale = constOf(1000);
+    const xdiff = sub(x2, x1);
+    const ydiff = sub(y2, y1);
+    const ct = div(xdiff, ops.vnorm([xdiff, ydiff]));
+
+    return mul(
+      scale,
+      sub(cos(div(constOfIf(angle), div(constOf(180), constOf(Math.PI)))), ct)
+    );
   },
 };
 

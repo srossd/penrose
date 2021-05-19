@@ -1,57 +1,184 @@
 const {
-    pointSize = 10.
+    radius = 40.
+    aspect = 2.
 
     thickness = 5.
     edgeLength = 300.
+
+    width = 1000.
+    height = 600.
 }
 
 Vertex v {
-    vec2 v.pos = (?, ?)
+    -- using a vec2 here fails. no errors, but nothing is drawn
+    v.x = ?
+    v.y = ?
 
-    shape v.pt = Circle {
-        center: v.pos
-        r: const.pointSize
+    shape v.pt = Path {
+        pathData: arcPath((v.x + const.radius/const.aspect, v.y), 0., 361., const.radius/const.aspect, const.radius)
+
+        fill: rgba(1., 1., 1., 0.)
         color: rgba(0., 0., 0., 1.)
-        strokeWidth: 0.
+        strokeWidth: 5.
+    }
+
+    ensure lessThan(-const.width/2, v.x)
+    ensure lessThan(v.x, const.width/2)
+    ensure lessThan(-const.height/2, v.y)
+    ensure lessThan(v.y, const.height/2)
+}
+
+Vertex v; Vertex v1
+where ChildrenOf1(v, v1) {
+    ensure lessThan(v.x, v1.x, const.edgeLength)
+    ensure almostHorizontal(v.x, v.y, v1.x, v1.y)
+
+    shape v.leg1 = Path {
+        pathData: bezier(((v1.x, v1.y + const.radius), ((v.x + 3.*v1.x)/4., v1.y + const.radius), ((3.*v.x + v1.x)/4., v.y + const.radius), (v.x, v.y + const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v.leg2 = Path {
+        pathData: bezier(((v1.x, v1.y - const.radius), ((v.x + 3.*v1.x)/4., v1.y - const.radius), ((3.*v.x + v1.x)/4., v.y - const.radius), (v.x, v.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
     }
 }
 
-Edge e {
-    vec2 e.start = (?, ?)
-    vec2 e.end = (?, ?)
+Vertex v; Vertex v1; Vertex v2
+where ChildrenOf2(v, v1, v2) {
+    ensure lessThan(v.x, v1.x, const.edgeLength)
+    ensure lessThan(v.x, v2.x, const.edgeLength)
+    ensure lessThan(v2.y, v1.y, const.edgeLength/2.)
 
-    shape e.line = Line {
-        start: e.start
-        end: e.end
-        thickness: const.thickness
-        color: rgba(0., 0., 0., 1)
+    ensure almostHorizontal(v.x, v.y, v1.x, v1.y)
+    ensure almostHorizontal(v.x, v.y, v2.x, v2.y)
+
+    encourage equal(v1.x, v2.x)
+
+    shape v.leg1 = Path {
+        pathData: bezier(((v1.x, v1.y + const.radius), ((v.x + 3.*v1.x)/4., v1.y + const.radius), ((3.*v.x + v1.x)/4., v.y + const.radius), (v.x, v.y + const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v.leg2 = Path {
+        pathData: bezier(((v2.x, v2.y - const.radius), ((v.x + 3.*v2.x)/4., v2.y - const.radius), ((3.*v.x + v2.x)/4., v.y - const.radius), (v.x, v.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v.seam1 = Path {
+        pathData: bezier(((v2.x, v2.y + const.radius), ((4*v2.x + v.x)/5., v2.y + const.radius), ((2*v.x + v1.x + v2.x)/4., (2*v.y + v1.y + v2.y)/4.), ((4*v1.x + v.x)/5., v1.y - const.radius), (v1.x, v1.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0, 0., 1.)
+        strokeWidth: 5.
     }
 }
 
-Edge e
-where e := join(v1, v2) 
-with Vertex v1; Vertex v2 {
-    ensure equal(e.start[0], v1.pos[0])
-    ensure equal(e.start[1], v1.pos[1])
+Vertex v; Vertex v1; Vertex v2; Vertex v3
+where ChildrenOf3(v, v1, v2, v3) {
+    ensure lessThan(v.x, v1.x, const.edgeLength)
+    ensure lessThan(v.x, v2.x, const.edgeLength)
+    ensure lessThan(v.x, v3.x, const.edgeLength)
+    ensure lessThan(v2.y, v1.y, const.edgeLength/3.)
+    ensure lessThan(v3.y, v2.y, const.edgeLength/3.)
 
-    ensure equal(e.end[0], v2.pos[0])
-    ensure equal(e.end[1], v2.pos[1])
+    ensure almostHorizontal(v.x, v.y, v1.x, v1.y)
+    ensure almostHorizontal(v.x, v.y, v2.x, v2.y)
+    ensure almostHorizontal(v.x, v.y, v3.x, v3.y)
 
-    ensure equal(e.end[0] - e.start[0], const.edgeLength)
+    encourage equal(v1.x, v2.x)
+    encourage equal(v2.x, v3.x)
 
-    encourage equal(e.start[1], e.end[1])
+    shape v.leg1 = Path {
+        pathData: bezier(((v1.x, v1.y + const.radius), ((v.x + 3.*v1.x)/4., v1.y + const.radius), ((3.*v.x + v1.x)/4., v.y + const.radius), (v.x, v.y + const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v.leg2 = Path {
+        pathData: bezier(((v3.x, v3.y - const.radius), ((v.x + 3.*v3.x)/4., v3.y - const.radius), ((3.*v.x + v3.x)/4., v.y - const.radius), (v.x, v.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v.seam1 = Path {
+        pathData: bezier(((v2.x, v2.y + const.radius), ((4*v2.x + v.x)/5., v2.y + const.radius), ((2*v.x + v1.x + v2.x)/4., (2*v.y + v1.y + v2.y)/4.), ((4*v1.x + v.x)/5., v1.y - const.radius), (v1.x, v1.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0, 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v.seam2 = Path {
+        pathData: bezier(((v3.x, v3.y + const.radius), ((4*v3.x + v.x)/5., v3.y + const.radius), ((2*v.x + v2.x + v3.x)/4., (2*v.y + v2.y + v3.y)/4.), ((4*v2.x + v.x)/5., v2.y - const.radius), (v2.x, v2.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0, 0., 1.)
+        strokeWidth: 5.
+    }
 }
 
-Vertex v1; Vertex v2; Vertex v3; Edge e1; Edge e2
-where e1 := join(v1, v2); e2 := join(v1, v3) {
-    encourage repelScalar(v2.pos[1], v3.pos[1]) -- repel siblings
+-- hide intermediate vertices
+
+Vertex v1; Vertex v2; Vertex v3
+where ChildrenOf1(v1, v2); ChildrenOf1(v2, v3) {
+    override v2.pt.color = rgba(0., 0., 0., 0.)
 }
 
-Vertex v1; Vertex v2; Vertex v3; Edge e1; Edge e2
-where e1 := join(v2, v1); e2 := join(v3, v1) {
-    encourage repelScalar(v2.pos[1], v3.pos[1]) -- repel co-parents
+Vertex v1; Vertex v2; Vertex v3; Vertex v4
+where ChildrenOf2(v1, v2, v3); ChildrenOf1(v2, v4) {
+    override v2.pt.color = rgba(0., 0., 0., 0.)
 }
 
-Edge e1; Edge e2 {
-    ensure lessThan((e1.start[1] - e2.start[1])*(e2.end[1] - e1.end[1]), 0) -- make edges non-overlapping
+Vertex v1; Vertex v2; Vertex v3; Vertex v4
+where ChildrenOf2(v1, v2, v3); ChildrenOf1(v3, v4) {
+    override v3.pt.color = rgba(0., 0., 0., 0.)
+}
+
+Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
+where ChildrenOf2(v1, v2, v3); ChildrenOf2(v2, v4, v5) {
+    override v2.pt.color = rgba(0., 0., 0., 0.)
+}
+
+Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
+where ChildrenOf2(v1, v2, v3); ChildrenOf2(v3, v4, v5) {
+    override v3.pt.color = rgba(0., 0., 0., 0.)
+}
+
+-- Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
+-- where ChildrenOf2(v1, v2, v3, v4); ChildrenOf1(v2, v5) {
+--     override v2.pt.color = rgba(0., 0., 0., 0.)
+-- }
+
+-- Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
+-- where ChildrenOf2(v1, v2, v3, v4); ChildrenOf1(v3, v5) {
+--     override v3.pt.color = rgba(0., 0., 0., 0.)
+-- }
+
+-- Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
+-- where ChildrenOf2(v1, v2, v3, v4); ChildrenOf1(v4, v5) {
+--     override v4.pt.color = rgba(0., 0., 0., 0.)
+-- }
+
+-- non-crossing constraints
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2
+where ChildrenOf1(v1, w1); ChildrenOf1(v2, w2) {
+    ensure lessThan(0, (v1.y - v2.y)*(w1.y - w2.y))
 }
