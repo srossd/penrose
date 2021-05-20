@@ -1,3 +1,8 @@
-Vertex a, b1, b2, b3
+Vertex a, b1, b2, b3, c, d1, d2, d3, temp1, temp2
 
 ChildrenOf3(a, b1, b2, b3)
+ParentOf2(b1, b2, c)
+ChildrenOf3(c, d1, d2, d3)
+
+ChildrenOf1(b3, temp1)
+ChildrenOf1(temp1, temp2)

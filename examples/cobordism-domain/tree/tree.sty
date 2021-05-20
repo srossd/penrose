@@ -14,11 +14,14 @@ Vertex v {
     v.x = ?
     v.y = ?
 
+    v.isParent = 0.
+    v.isChild = 0.
+
     shape v.pt = Path {
         pathData: arcPath((v.x + const.radius/const.aspect, v.y), 0., 361., const.radius/const.aspect, const.radius)
 
         fill: rgba(1., 1., 1., 0.)
-        color: rgba(0., 0., 0., 1.)
+        color: rgba(0., 0., 0., 2. - v.isParent - v.isChild)
         strokeWidth: 5.
     }
 
@@ -28,10 +31,15 @@ Vertex v {
     ensure lessThan(v.y, const.height/2)
 }
 
+-- ChildrenOf
+
 Vertex v; Vertex v1
 where ChildrenOf1(v, v1) {
     ensure lessThan(v.x, v1.x, const.edgeLength)
     ensure almostHorizontal(v.x, v.y, v1.x, v1.y)
+
+    override v.isParent = 1.
+    override v1.isChild = 1.
 
     shape v.leg1 = Path {
         pathData: bezier(((v1.x, v1.y + const.radius), ((v.x + 3.*v1.x)/4., v1.y + const.radius), ((3.*v.x + v1.x)/4., v.y + const.radius), (v.x, v.y + const.radius)))
@@ -48,6 +56,17 @@ where ChildrenOf1(v, v1) {
         color: rgba(0., 0., 0., 1.)
         strokeWidth: 5.
     }
+
+    shape v.bbox = Rectangle {
+        w: v1.x - v.x + 2.*const.radius/const.aspect
+        h: abs(v1.y - v.y) + 2.*const.radius
+
+        center: ((v1.x + v.x)/2., (v1.y + v.y)/2.)
+
+        strokeColor: rgba(1., 0., 0., 0.)
+        strokeWidth: 5.
+        color: rgba(0., 0., 0., 0.)
+    }
 }
 
 Vertex v; Vertex v1; Vertex v2
@@ -58,6 +77,10 @@ where ChildrenOf2(v, v1, v2) {
 
     ensure almostHorizontal(v.x, v.y, v1.x, v1.y)
     ensure almostHorizontal(v.x, v.y, v2.x, v2.y)
+
+    override v.isParent = 1.
+    override v1.isChild = 1.
+    override v2.isChild = 1.
 
     encourage equal(v1.x, v2.x)
 
@@ -84,6 +107,17 @@ where ChildrenOf2(v, v1, v2) {
         color: rgba(0., 0, 0., 1.)
         strokeWidth: 5.
     }
+
+    shape v.bbox = Rectangle {  
+        w: max(v1.x, v2.x) - v.x + 2.*const.radius/const.aspect
+        h: max(v1.y, v.y) - min(v2.y, v.y) + 2.*const.radius
+
+        center: (0.5*(max(v1.x, v2.x) + v.x), 0.5*(max(v1.y, v.y) + min(v2.y, v.y)))
+        
+        strokeColor: rgba(1., 0., 0., 0.)
+        strokeWidth: 5.
+        color: rgba(0., 0., 0., 0.)
+    }
 }
 
 Vertex v; Vertex v1; Vertex v2; Vertex v3
@@ -97,6 +131,11 @@ where ChildrenOf3(v, v1, v2, v3) {
     ensure almostHorizontal(v.x, v.y, v1.x, v1.y)
     ensure almostHorizontal(v.x, v.y, v2.x, v2.y)
     ensure almostHorizontal(v.x, v.y, v3.x, v3.y)
+
+    override v.isParent = 1.
+    override v1.isChild = 1.
+    override v2.isChild = 1.
+    override v3.isChild = 1.
 
     encourage equal(v1.x, v2.x)
     encourage equal(v2.x, v3.x)
@@ -132,53 +171,210 @@ where ChildrenOf3(v, v1, v2, v3) {
         color: rgba(0., 0, 0., 1.)
         strokeWidth: 5.
     }
+
+    shape v.bbox = Rectangle {  
+        w: max(v1.x, max(v2.x, v3.x)) - v.x + 2.*const.radius/const.aspect
+        h: max(v1.y, v.y) - min(v3.y, v.y) + 2.*const.radius
+
+        center: (0.5*(max(v1.x, max(v2.x, v3.x)) + v.x), 0.5*(max(v1.y, v.y) + min(v3.y, v.y)))
+        
+        strokeColor: rgba(1., 0., 0., 0.)
+        strokeWidth: 5.
+        color: rgba(0., 0., 0., 0.)
+    }
 }
 
--- hide intermediate vertices
+-- ParentOf
 
-Vertex v1; Vertex v2; Vertex v3
-where ChildrenOf1(v1, v2); ChildrenOf1(v2, v3) {
-    override v2.pt.color = rgba(0., 0., 0., 0.)
+Vertex v1; Vertex v2; Vertex v
+where ParentOf2(v1, v2, v) {
+    ensure lessThan(v1.x, v.x, const.edgeLength)
+    ensure lessThan(v2.x, v.x, const.edgeLength)
+    ensure lessThan(v2.y, v1.y, const.edgeLength/2.)
+
+    ensure almostHorizontal(v1.x, v1.y, v.x, v.y)
+    ensure almostHorizontal(v2.x, v2.y, v.x, v.y)
+
+    override v1.isParent = 1.
+    override v2.isParent = 1.
+    override v.isChild = 1.
+
+    encourage equal(v1.x, v2.x)
+
+    shape v1.leg1 = Path {
+        pathData: bezier(((v1.x, v1.y + const.radius), ((v.x + 3.*v1.x)/4., v1.y + const.radius), ((3.*v.x + v1.x)/4., v.y + const.radius), (v.x, v.y + const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v2.leg2 = Path {
+        pathData: bezier(((v2.x, v2.y - const.radius), ((v.x + 3.*v2.x)/4., v2.y - const.radius), ((3.*v.x + v2.x)/4., v.y - const.radius), (v.x, v.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v1.seam1 = Path {
+        pathData: bezier(((v2.x, v2.y + const.radius), ((4*v2.x + v.x)/5., v2.y + const.radius), ((2*v.x + v1.x + v2.x)/4., (2*v.y + v1.y + v2.y)/4.), ((4*v1.x + v.x)/5., v1.y - const.radius), (v1.x, v1.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0, 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v1.bbox = Rectangle {  
+        w: v.x - max(v1.x, v2.x) + 2.*const.radius/const.aspect
+        h: max(v1.y, v.y) - min(v2.y, v.y) + 2.*const.radius
+
+        center: (0.5*(max(v1.x, v2.x) + v.x), 0.5*(max(v1.y, v.y) + min(v2.y, v.y)))
+        
+        strokeColor: rgba(1., 0., 0., 0.)
+        strokeWidth: 5.
+        color: rgba(0., 0., 0., 0.)
+    }
 }
 
-Vertex v1; Vertex v2; Vertex v3; Vertex v4
-where ChildrenOf2(v1, v2, v3); ChildrenOf1(v2, v4) {
-    override v2.pt.color = rgba(0., 0., 0., 0.)
+Vertex v1; Vertex v2; Vertex v3; Vertex v
+where ParentOf3(v1, v2, v3, v) {
+    ensure lessThan(v1.x, v.x, const.edgeLength)
+    ensure lessThan(v2.x, v.x, const.edgeLength)
+    ensure lessThan(v3.x, v.x, const.edgeLength)
+    ensure lessThan(v2.y, v1.y, const.edgeLength/3.)
+    ensure lessThan(v3.y, v2.y, const.edgeLength/3.)
+
+    ensure almostHorizontal(v1.x, v1.y, v.x, v.y)
+    ensure almostHorizontal(v2.x, v2.y, v.x, v.y)
+    ensure almostHorizontal(v3.x, v3.y, v.x, v.y)
+
+    override v1.isParent = 1.
+    override v2.isParent = 1.
+    override v3.isParent = 1.
+    override v.isChild = 1.
+
+    encourage equal(v1.x, v2.x)
+    encourage equal(v2.x, v3.x)
+
+    shape v1.leg1 = Path {
+        pathData: bezier(((v1.x, v1.y + const.radius), ((v.x + 3.*v1.x)/4., v1.y + const.radius), ((3.*v.x + v1.x)/4., v.y + const.radius), (v.x, v.y + const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v3.leg2 = Path {
+        pathData: bezier(((v3.x, v3.y - const.radius), ((v.x + 3.*v3.x)/4., v3.y - const.radius), ((3.*v.x + v3.x)/4., v.y - const.radius), (v.x, v.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0., 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v1.seam1 = Path {
+        pathData: bezier(((v2.x, v2.y + const.radius), ((4*v2.x + v.x)/5., v2.y + const.radius), ((2*v.x + v1.x + v2.x)/4., (2*v.y + v1.y + v2.y)/4.), ((4*v1.x + v.x)/5., v1.y - const.radius), (v1.x, v1.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0, 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v2.seam2 = Path {
+        pathData: bezier(((v3.x, v3.y + const.radius), ((4*v3.x + v.x)/5., v3.y + const.radius), ((2*v.x + v2.x + v3.x)/4., (2*v.y + v2.y + v3.y)/4.), ((4*v2.x + v.x)/5., v2.y - const.radius), (v2.x, v2.y - const.radius)))
+
+        fill: rgba(1., 1., 1., 0.)
+        color: rgba(0., 0, 0., 1.)
+        strokeWidth: 5.
+    }
+
+    shape v1.bbox = Rectangle {  
+        w: v.x - max(v1.x, max(v2.x, v3.x)) + 2.*const.radius/const.aspect
+        h: max(v1.y, v.y) - min(v2.y, v.y) + 2.*const.radius
+
+        center: (0.5*(max(v1.x, max(v2.x, v3.x)) + v.x), 0.5*(max(v1.y, v.y) + min(v2.y, v.y)))
+        
+        strokeColor: rgba(1., 0., 0., 0.)
+        strokeWidth: 5.
+        color: rgba(0., 0., 0., 0.)
+    }
 }
-
-Vertex v1; Vertex v2; Vertex v3; Vertex v4
-where ChildrenOf2(v1, v2, v3); ChildrenOf1(v3, v4) {
-    override v3.pt.color = rgba(0., 0., 0., 0.)
-}
-
-Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
-where ChildrenOf2(v1, v2, v3); ChildrenOf2(v2, v4, v5) {
-    override v2.pt.color = rgba(0., 0., 0., 0.)
-}
-
-Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
-where ChildrenOf2(v1, v2, v3); ChildrenOf2(v3, v4, v5) {
-    override v3.pt.color = rgba(0., 0., 0., 0.)
-}
-
--- Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
--- where ChildrenOf2(v1, v2, v3, v4); ChildrenOf1(v2, v5) {
---     override v2.pt.color = rgba(0., 0., 0., 0.)
--- }
-
--- Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
--- where ChildrenOf2(v1, v2, v3, v4); ChildrenOf1(v3, v5) {
---     override v3.pt.color = rgba(0., 0., 0., 0.)
--- }
-
--- Vertex v1; Vertex v2; Vertex v3; Vertex v4; Vertex v5
--- where ChildrenOf2(v1, v2, v3, v4); ChildrenOf1(v4, v5) {
---     override v4.pt.color = rgba(0., 0., 0., 0.)
--- }
 
 -- non-crossing constraints
+-- Ross: with all of these uncommented, a diagram with ~10 vertices hangs on my machine
 
 Vertex v1; Vertex v2; Vertex w1; Vertex w2
 where ChildrenOf1(v1, w1); ChildrenOf1(v2, w2) {
-    ensure lessThan(0, (v1.y - v2.y)*(w1.y - w2.y))
+    ensure disjoint(v1.bbox, v2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3
+where ChildrenOf1(v1, w1); ChildrenOf2(v2, w2, w3) {
+    ensure disjoint(v1.bbox, v2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4
+where ChildrenOf1(v1, w1); ChildrenOf3(v2, w2, w3, w4) {
+    ensure disjoint(v1.bbox, v2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3
+where ChildrenOf1(v1, w1); ParentOf2(w2, w3, v2) {
+    ensure disjoint(v1.bbox, w2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4
+where ChildrenOf1(v1, w1); ParentOf3(w2, w3, w4, v2) {
+    ensure disjoint(v1.bbox, w2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4
+where ChildrenOf2(v1, w1, w2); ChildrenOf2(v2, w3, w4) {
+    ensure disjoint(v1.bbox, v2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4; Vertex w5
+where ChildrenOf2(v1, w1, w2); ChildrenOf3(v2, w3, w4, w5) {
+    ensure disjoint(v1.bbox, v2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4
+where ChildrenOf2(v1, w1, w2); ParentOf2(w3, w4, v2) {
+    ensure disjoint(v1.bbox, w3.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4; Vertex w5
+where ChildrenOf2(v1, w1, w2); ParentOf3(w3, w4, w5, v2) {
+    ensure disjoint(v1.bbox, w3.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4; Vertex w5; Vertex w6
+where ChildrenOf3(v1, w1, w2, w3); ChildrenOf3(v2, w4, w5, w6) {
+    ensure disjoint(v1.bbox, v2.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4; Vertex w5
+where ChildrenOf3(v1, w1, w2, w3); ParentOf2(w4, w5, v2) {
+    ensure disjoint(v1.bbox, w4.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4; Vertex w5; Vertex w6
+where ChildrenOf3(v1, w1, w2, w3); ParentOf3(w4, w5, w6, v2) {
+    ensure disjoint(v1.bbox, w4.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4
+where ParentOf2(w1, w2, v1); ParentOf2(w3, w4, v2) {
+    ensure disjoint(v1.bbox, w3.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4; Vertex w5
+where ParentOf2(w1, w2, v1); ParentOf3(w3, w4, w5, v2) {
+    ensure disjoint(v1.bbox, w3.bbox)
+}
+
+Vertex v1; Vertex v2; Vertex w1; Vertex w2; Vertex w3; Vertex w4; Vertex w5; Vertex w6
+where ParentOf3(w1, w2, w3, v1); ParentOf3(w4, w5, w6, v2) {
+    ensure disjoint(v1.bbox, w4.bbox)
 }
